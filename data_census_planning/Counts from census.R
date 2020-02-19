@@ -40,9 +40,17 @@ sourceDir("functions/")
 
 ## Import calculated databased on county wide data
 datMailRates <- as.data.table(readOGR("data_maps/tracts.geojson")@data)
-htc <- fread("data_census_planning/pdb2017tract_2010MRR_2018ACS_IL.csv")
-htc[ , geoidtxt := as.character(geoidtxt)]
+htc <- openxlsx::read.xlsx("data_census_planning/pdb2017tract_2010MRR_2018ACS_IL.xlsx",
+                           sheet = 2, startRow = 6)
+htc <- as.data.table(htc)
+ii <- match(datMailRates$GEOID, htc$GEOIDtxt)
+htc <- htc[ii]
+htc
 
+plot(MailReturnRateCen2010 ~ LowResponseScore, htc)
+htc[LowResponseScore == 99999, LowResponseScore := NA]
+htc[MailReturnRateCen2010 == 99999, MailReturnRateCen2010 := NA]
+plot(MailReturnRateCen2010 ~ LowResponseScore, htc)
 
 ## Import new rates
 
