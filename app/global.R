@@ -45,6 +45,13 @@ htc <- htc[match(shp_tracts$GEOID, htc$GEOIDtxt)]
 htc[LowResponseScore == 99999, LowResponseScore := NA]
 htc[MailReturnRateCen2010 == 99999, MailReturnRateCen2010 := NA]
 
+#Pull Civis data - need to make sure API is set up separately. See https://civisanalytics.github.io/civis-r/
+library(civis)
+civistable <- "cic.pdb2019trv3_us"
+civisdata <- read_civis(civistable, database="City of Chicago") #this will take a minute or two
+civisdata <- as.data.table(civisdata)
+civisdata <- civisdata[match(shp_tracts$GEOID, civisdata$gidtr)]
+
 
 
 

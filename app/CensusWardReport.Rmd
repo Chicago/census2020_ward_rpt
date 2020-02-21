@@ -1,0 +1,63 @@
+# Draft Census Ward Report for Ward `r ward`
+##### Report Date: `r Sys.Date()`
+
+```{r setup, include=FALSE}
+#this code section is  all the R code we want to run to prepare objects for the report itself. All processing, reformatting, library loading, etc. should be done in this r chunk. Actually creating the maps and tables and any text should be done in later code sections. 
+
+suppressWarnings(suppressPackageStartupMessages(library(tmap)))
+suppressWarnings(suppressPackageStartupMessages(library(sp)))
+suppressWarnings(suppressPackageStartupMessages(library(sf)))
+library(knitr)
+library(markdown)
+library(rmarkdown)
+
+#Create the ward-specific overlap files to be used in the making the map and table
+ward_tract_overlap1 <- gWithin(spgeom1 = shp_tracts, 
+                         spgeom2 = shp_wards[shp_wards@data$ward == ward, ],
+                         byid = TRUE) 
+ward_tract_overlap2 <- gOverlaps(spgeom1 = shp_tracts, 
+                         spgeom2 = shp_wards[shp_wards@data$ward == ward, ],
+                         byid = TRUE)
+ward_tract_overlap <- Reduce("|", list(ward_tract_overlap1, ward_tract_overlap2))
+rm(ward_tract_overlap1, ward_tract_overlap2)
+
+ward_spdf <- shp_tracts[which(ward_tract_overlap), ]
+dt <- data.table(shp_tracts@data[which(ward_tract_overlap), ])
+rm(ward_tract_overlap)
+
+#convert file to tmap format
+ward_sf <- st_as_sf(ward_spdf, crs = 4326)
+
+#make the map
+popups <- c("NAMELSAD", "low_response_score", "tot_population_cen_2010", "tot_housing_units_cen_2010", "nh_blk_alone_acs_13_17", "hispanic_acs_13_17", "eng_vw_acs_13_17", "HH_SingleParent")
+breaks <- seq(0, 45, by = 5)
+
+map1 <- tm_shape(ward_sf, is.master = TRUE) + 
+  tm_polygons(col = "low_response_score", palette = "YlOrRd", style="cont", alpha = .7, title = "Low       Response Score", breaks=breaks, popup.var = popups, group = "Relevant Ward Census Tracts") +
+  tm_layout(title = "Heatmap of Low Response Scores") +
+  tm_view(view.legend.position = c("left", "bottom"))  +
+  tm_basemap(server = "OpenMapSurfer.Roads") +
+  tm_shape(shp_wards[shp_wards@data$ward == ward, ]) +
+  tm_borders(col = "blue", lwd=3, group = paste0("Ward ", ward, " Outline"))
+```
+
+## Response Rate Map
+
+```{r map, echo = FALSE}
+map1
+```
+
+
+## Data Table
+
+```{r datatable, echo = FALSE}
+dt[,
+   j = list(Low_Response_Score = low_response_score,
+            Population_Estimate_in_2010 = tot_population_cen_2010,
+            Black_Population = nh_blk_alone_acs_13_17,
+            Hispanic_Population = hispanic_acs_13_17,
+            Limited_English_Proficiency_Households = eng_vw_acs_13_17,
+            Single_Parent_Households = HH_SingleParent
+            ),
+   by = "NAMELSAD"]
+```
