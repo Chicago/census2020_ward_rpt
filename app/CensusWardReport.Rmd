@@ -39,6 +39,40 @@ map1 <- tm_shape(ward_sf, is.master = TRUE) +
   tm_basemap(server = "OpenMapSurfer.Roads") +
   tm_shape(shp_wards[shp_wards@data$ward == ward, ]) +
   tm_borders(col = "blue", lwd=3, group = paste0("Ward ", ward, " Outline"))
+
+dt2<- dt[, .(low_response_score, tot_population_cen_2010, nh_blk_alone_acs_13_17, 
+             hispanic_acs_13_17, tot_housing_units_cen_2010, eng_vw_acs_13_17,
+             HH_SingleParent), by = "NAMELSAD"]
+dt2<- na.omit(dt2)
+
+dt2[, c("perc_LEP", "perc_SP"):=list((eng_vw_acs_13_17/tot_housing_units_cen_2010*100), 
+                                     (HH_SingleParent/tot_housing_units_cen_2010*100)), ]
+
+YlOrRd <- function(x) rgb(colorRamp(c("#fff7ba", "#fee28a", "#fec05b", "#fd923e", "#fc502a", "#df171c", "#b00026"))(x), maxColorValue = 255)
+
+table <- reactable(dt2, columns = list (
+    NAMELSAD = colDef(name = "Census Tract"),
+    low_response_score = colDef(name = "Low Response Score", style = function(value) {
+        if (!is.numeric(value)) return(min(shp_tracts@data$low_response_score, na.rm=TRUE))
+        normalized <- (value - min(shp_tracts@data$low_response_score, na.rm=TRUE)) / (max(shp_tracts@data$low_response_score, na.rm=TRUE) - min(shp_tracts@data$low_response_score, na.rm=TRUE))
+        color <- YlOrRd(normalized)
+        list(background = color)
+    }),
+    tot_population_cen_2010 = colDef(name = "Total"),
+    nh_blk_alone_acs_13_17 = colDef(name = "Black"), 
+    hispanic_acs_13_17 = colDef(name = "Hispanic"),
+    tot_housing_units_cen_2010 = colDef(name = "Total"),
+    eng_vw_acs_13_17 = colDef(name = "Limited English Profficiency (LEP)"),
+    perc_LEP = colDef(name = "% LEP", format = colFormat(digits = 2)),
+    HH_SingleParent = colDef(name = "Single Parent"),
+    perc_SP = colDef(name = "% Single Parent", format = colFormat(digits = 2))
+), 
+columnGroups = list(
+    colGroup(name = "Population", columns = c("tot_population_cen_2010", "nh_blk_alone_acs_13_17",
+             "hispanic_acs_13_17")),
+    colGroup(name = "Households", columns = c("tot_housing_units_cen_2010", "eng_vw_acs_13_17", 
+                                              "perc_LEP", "HH_SingleParent", "perc_SP"))
+), bordered = TRUE, resizable = TRUE)
 ```
 
 ## Response Rate Map
@@ -51,13 +85,5 @@ map1
 ## Data Table
 
 ```{r datatable, echo = FALSE}
-dt[,
-   j = list(Low_Response_Score = low_response_score,
-            Population_Estimate_in_2010 = tot_population_cen_2010,
-            Black_Population = nh_blk_alone_acs_13_17,
-            Hispanic_Population = hispanic_acs_13_17,
-            Limited_English_Proficiency_Households = eng_vw_acs_13_17,
-            Single_Parent_Households = HH_SingleParent
-            ),
-   by = "NAMELSAD"]
+table
 ```
