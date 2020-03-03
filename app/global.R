@@ -22,6 +22,9 @@ shp_community <- readOGR("data_maps/community_areas.geojson")
 shp_tracts <- readOGR("data_maps/tracts.geojson")
 shp_wards <- readOGR("data_maps/wards.geojson")
 
+#Convert community area names from all caps to capitalized first word. 
+shp_community@data$community <- capwords(tolower(shp_community@data$community))
+
 ## Create versions with a little room between polygons
 ## ignore warnings
 shp_community_buf <- gBuffer(shp_community, width = -.00001)
@@ -51,7 +54,6 @@ civistable <- "cic.pdb2019trv3_us"
 civisdata <- read_civis(civistable, database="City of Chicago") #this will take a minute or two
 civisdata <- as.data.table(civisdata)
 civisdata <- civisdata[match(shp_tracts$GEOID, civisdata$gidtr)]
-
 
 
 

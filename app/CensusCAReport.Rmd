@@ -1,4 +1,4 @@
-# Draft Census Ward Report for Ward `r ward`
+# Draft Census Ward Report for `r community`
 ##### Report Date: `r Sys.Date()`
 
 ```{r setup, include=FALSE}
@@ -12,33 +12,33 @@ library(markdown)
 library(rmarkdown)
 
 #Create the ward-specific overlap files to be used in the making the map and table
-ward_tract_overlap1 <- gWithin(spgeom1 = shp_tracts, 
-                         spgeom2 = shp_wards[shp_wards@data$ward == ward, ],
+CA_tract_overlap1 <- gWithin(spgeom1 = shp_tracts, 
+                         spgeom2 = shp_community[shp_community@data$community == community, ],
                          byid = TRUE) 
-ward_tract_overlap2 <- gOverlaps(spgeom1 = shp_tracts, 
-                         spgeom2 = shp_wards[shp_wards@data$ward == ward, ],
+CA_tract_overlap2 <- gOverlaps(spgeom1 = shp_tracts, 
+                         spgeom2 = shp_community[shp_community@data$community == community, ],
                          byid = TRUE)
-ward_tract_overlap <- Reduce("|", list(ward_tract_overlap1, ward_tract_overlap2))
-rm(ward_tract_overlap1, ward_tract_overlap2)
+CA_tract_overlap <- Reduce("|", list(CA_tract_overlap1, CA_tract_overlap2))
+rm(CA_tract_overlap1, CA_tract_overlap2)
 
-ward_spdf <- shp_tracts[which(ward_tract_overlap), ]
-dt <- data.table(shp_tracts@data[which(ward_tract_overlap), ])
-rm(ward_tract_overlap)
+CA_spdf <- shp_tracts[which(CA_tract_overlap), ]
+dt <- data.table(shp_tracts@data[which(CA_tract_overlap), ])
+rm(CA_tract_overlap)
 
 #convert file to tmap format
-ward_sf <- st_as_sf(ward_spdf, crs = 4326)
+CA_sf <- st_as_sf(CA_spdf, crs = 4326)
 
 #make the map
 popups <- c("NAMELSAD", "low_response_score", "tot_population_cen_2010", "tot_housing_units_cen_2010", "nh_blk_alone_acs_13_17", "hispanic_acs_13_17", "eng_vw_acs_13_17", "HH_SingleParent")
 breaks <- seq(0, 45, by = 5)
 
-map1 <- tm_shape(ward_sf, is.master = TRUE) + 
-  tm_polygons(col = "low_response_score", palette = "YlOrRd", style="cont", alpha = .7, title = "Low       Response Score", breaks=breaks, popup.var = popups, group = "Relevant Ward Census Tracts") +
+map1 <- tm_shape(CA_sf, is.master = TRUE) + 
+  tm_polygons(col = "low_response_score", palette = "YlOrRd", style="cont", alpha = .7, title = "Low       Response Score", breaks=breaks, popup.var = popups, group = "Relevant Community Area Census Tracts") +
   tm_layout(title = "Heatmap of Low Response Scores") +
   tm_view(view.legend.position = c("left", "bottom"))  +
   tm_basemap(server = "OpenMapSurfer.Roads") +
-  tm_shape(shp_wards[shp_wards@data$ward == ward, ]) +
-  tm_borders(col = "blue", lwd=3, group = paste0("Ward ", ward, " Outline"))
+  tm_shape(shp_community[shp_community@data$community == community, ]) +
+  tm_borders(col = "blue", lwd=3, group = paste0(community, " Outline"))
 
 dt2<- dt[, .(low_response_score, tot_population_cen_2010, nh_blk_alone_acs_13_17, 
              hispanic_acs_13_17, tot_housing_units_cen_2010, eng_vw_acs_13_17,
@@ -52,7 +52,7 @@ YlOrRd <- function(x) rgb(colorRamp(c("#fff7ba", "#fee28a", "#fec05b", "#fd923e"
 
 table <- reactable(dt2, columns = list (
     NAMELSAD = colDef(name = "Census Tract"),
-    low_response_score = colDef(name = "Low Response Score", defaultSortOrder = "desc", 
+    low_response_score = colDef(name = "Low Response Score", defaultSortOrder = "desc",
                                 style = function(value) {
         if (!is.numeric(value)) return(min(shp_tracts@data$low_response_score, na.rm=TRUE))
         normalized <- (value - min(shp_tracts@data$low_response_score, na.rm=TRUE)) / (max(shp_tracts@data$low_response_score, na.rm=TRUE) - min(shp_tracts@data$low_response_score, na.rm=TRUE))
