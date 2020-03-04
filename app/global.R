@@ -55,5 +55,9 @@ civisdata <- read_civis(civistable, database="City of Chicago") #this will take 
 civisdata <- as.data.table(civisdata)
 civisdata <- civisdata[match(shp_tracts$GEOID, civisdata$gidtr)]
 
+#Also load the Civis Ward-tract crosswalk file
+crosswalk <- read.csv("data_census_planning/crosswalk.csv")
+
+
 
 

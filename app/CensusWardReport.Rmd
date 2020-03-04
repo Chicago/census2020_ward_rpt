@@ -29,9 +29,11 @@ rm(ward_tract_overlap)
 ward_sf <- st_as_sf(ward_spdf, crs = 4326)
 
 #make the map
+#start by defining variables that will pop up and breaks
 popups <- c("NAMELSAD", "low_response_score", "tot_population_cen_2010", "tot_housing_units_cen_2010", "nh_blk_alone_acs_13_17", "hispanic_acs_13_17", "eng_vw_acs_13_17", "HH_SingleParent")
 breaks <- seq(0, 45, by = 5)
 
+#this will actually make the map
 map1 <- tm_shape(ward_sf, is.master = TRUE) + 
   tm_polygons(col = "low_response_score", palette = "YlOrRd", style="cont", alpha = .7, title = "Low       Response Score", breaks=breaks, popup.var = popups, group = "Relevant Ward Census Tracts") +
   tm_layout(title = "Heatmap of Low Response Scores") +
@@ -40,14 +42,18 @@ map1 <- tm_shape(ward_sf, is.master = TRUE) +
   tm_shape(shp_wards[shp_wards@data$ward == ward, ]) +
   tm_borders(col = "blue", lwd=3, group = paste0("Ward ", ward, " Outline"))
 
+#Next, make a data table to show ward demographics - that will be saved as dt2
 dt2<- dt[, .(low_response_score, tot_population_cen_2010, nh_blk_alone_acs_13_17, 
              hispanic_acs_13_17, tot_housing_units_cen_2010, eng_vw_acs_13_17,
              HH_SingleParent), by = "NAMELSAD"]
 dt2<- na.omit(dt2)
 
+#add in percentages for specific columns
 dt2[, c("perc_LEP", "perc_SP"):=list((eng_vw_acs_13_17/tot_housing_units_cen_2010*100), 
                                      (HH_SingleParent/tot_housing_units_cen_2010*100)), ]
 
+#use the package Reactable to make the table fancy. 
+#This requires creating a function for coloring purposes
 YlOrRd <- function(x) rgb(colorRamp(c("#fff7ba", "#fee28a", "#fec05b", "#fd923e", "#fc502a", "#df171c", "#b00026"))(x), maxColorValue = 255)
 
 table <- reactable(dt2, columns = list (
@@ -74,6 +80,26 @@ columnGroups = list(
     colGroup(name = "Households", columns = c("tot_housing_units_cen_2010", "eng_vw_acs_13_17", 
                                               "perc_LEP", "HH_SingleParent", "perc_SP"))
 ), bordered = TRUE, resizable = TRUE, defaultSorted = "low_response_score")
+
+#Next, use Reactable to come up with a rank table that highlights the specific position
+#the ward has in comparison to other wards. 
+ranktable <- reactable(rankdt, columns = list(
+    ward = colDef(name = "Ward", format = colFormat(digits = 0)),
+    mean_response = colDef(name = "Raw Response Rate (%)"),
+    mean_handicap = colDef(name = "Weighting Factor"),
+    mean_weightedresponse = colDef(name = "Weighted Response Rate (%)", defaultSortOrder = "desc")
+    ), 
+    rowStyle = function(index) {
+        a <- which(rankdt$ward == ward)
+        if (index == a) list(background = "rgba(252, 140, 140, 0.5)")
+    }, 
+    bordered = TRUE, resizable = TRUE, defaultSorted = "mean_weightedresponse", defaultColDef = colDef(format = colFormat(digits = 2))
+)
+
+#Last, display the ranking as a raw number
+ranking <- rankings[rankdt$ward==ward]
+ranking <- 50 - ranking
+
 ```
 
 ## Response Rate Map
@@ -82,6 +108,13 @@ columnGroups = list(
 map1
 ```
 
+##How is This Ward Performing Compared to Others?
+
+In terms of performance, which has been weighted and handicapped based on ward performance in 2010, this ward is performing `r ranking` out of 50. 
+
+```{r rank, echo = FALSE}
+ranktable
+```
 
 ## Data Table
 
