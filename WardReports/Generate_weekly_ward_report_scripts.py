@@ -81,7 +81,7 @@ def create_new_email_script(ward_number):
 
 
 #Loop that calls function that makes new script
-for i in range(1,2):
+for i in range(1,51):
     temp_job_id = create_new_email_script(i)['id']
     print(temp_job_id)
     run_job_report = client.scripts.post_python3_runs(temp_job_id)
