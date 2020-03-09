@@ -1,6 +1,7 @@
 import pandas as pd
 import civis
-from datetime import date
+import datetime as dt
+import math
 import os
 
 client = civis.APIClient()
@@ -18,10 +19,25 @@ emails = ['sundipta@gmail.com' for i in range(50)]
 ward_email_data = pd.DataFrame(list(zip(wards, emails)),
                columns =['WARD', 'Ward_Office_Email'])
 
-email_body = """
-'''Dear Ward 1,
+#Number of weeks since the census started
+def weeks_of_census():
+    census_start = dt.date(2020, 3, 12)
+    today_date = dt.date.today()
+    delta = today_date - census_start
+    num_days = delta.days
+    weeks = math.floor(num_days/7)
+    return weeks
 
-Today is the 20th day of the Census Response Period. As of today, 2,000 households in your ward have responded to the 2020 Census. This means there are about **24,000 households** left to count!
+#Function to create
+def create_email_body(ward_number):
+    email_body = f"""
+    '''
+![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal.png)
+
+
+Dear Ward {ward_number},
+
+Today is Week {weeks_of_census()} of the Census Response Period. As of today, 2,000 households in your ward have responded to the 2020 Census. This means there are about **24,000 households** left to count!
 
 Here are some additional facts about how Chicago wards are doing.
 
@@ -36,30 +52,25 @@ Remember, for every additional person counted in Chicago, the City receives appr
 *Performance is measured based on how well each ward is performing relative to performance in the 2010 Census
 '''
 """
+    return email_body
+
 
 #Create function that defines the "source script" of the new script that get generated, inc ward email address
 def create_source_script(ward_number, ward_email_data):
-    str_A = """import os \n
+    source_str = f"""import os \n
 import civis \n
 from datetime import date \n
 
-j ="""
-    str_B = str(ward_number)
+j = {ward_number}
 
-    str_C ="""\n
 client = civis.APIClient()
 
-client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {
-        'success_email_subject' : 'Ward ' + str(j) + ' Report ' + date.today().strftime("%d/%m/%Y"),
-        'success_email_body' : """
-    str_D = """,
-        'success_email_addresses' : ['"""
-
-    str_E = ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0]
-    str_F = """']})
-    """
-    return str_A + str_B + str_C + email_body + str_D + str_E + str_F
-
+client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
+        'success_email_subject' : 'Ward {ward_number} Report {dt.date.today().strftime("%m/%d/%Y")}',
+        'success_email_body' : {create_email_body(ward_number)},
+        'success_email_addresses' : ['{ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0]}']}})
+        """
+    return source_str
 
 
 #Define function that creates new script
@@ -67,7 +78,6 @@ def create_new_email_script(ward_number):
     new_script = client.scripts.post_python3(name = 'Ward_'+str(ward_number) + '_script',
                                 source = create_source_script(ward_number,ward_email_data))
     return new_script
-
 
 
 #Loop that calls function that makes new script
