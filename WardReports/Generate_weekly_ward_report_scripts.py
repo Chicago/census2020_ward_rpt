@@ -1,8 +1,14 @@
 import pandas as pd
-import civis
+import numpy as np
+
 import datetime as dt
 import math
+
+import civis
 import os
+
+#########################################################
+#Pulling in data for email (to be transferred to a different script later)
 
 client = civis.APIClient()
 
@@ -15,7 +21,7 @@ ward_email_data = civis.io.read_civis(database='City of Chicago',
 
 #Generate fake table that should be replaced with actual ward table later
 wards = list(range(1,51))
-emails = ['sundipta@gmail.com' for i in range(50)]
+emails = ['srao@civisanalytics.com' for i in range(50)]
 ward_email_data = pd.DataFrame(list(zip(wards, emails)),
                columns =['WARD', 'Ward_Office_Email'])
 
@@ -28,7 +34,85 @@ def weeks_of_census():
     weeks = math.floor(num_days/7)
     return weeks
 
-#Function to create
+#Pull ward aggregation and household data
+query = """SELECT * FROM cic.ward_visualization_table;"""
+ward_agg = civis.io.read_civis_sql(query,database='City of Chicago',use_pandas = True)
+ward_agg.dropna(inplace=True)
+
+#Calculate counted and uncounted households per ward
+ward_agg['Counted Households'] = round(ward_agg['mail_return_rate_cen_2010'] * (ward_agg['tot_housing_units_acs_13_17']/100))
+ward_agg['Uncounted Households'] = ward_agg['tot_housing_units_acs_13_17'] - ward_agg['Counted Households']
+ward_agg['Percent Counted'] = round(ward_agg['Counted Households']*100/ward_agg['tot_housing_units_acs_13_17'],1)
+ward_agg['Percent Uncounted'] = round(ward_agg['Uncounted Households']*100/ward_agg['tot_housing_units_acs_13_17'],1)
+
+#Calculate City of Chicago uncounted stats
+total_reported_perc = round(ward_agg['Counted Households'].sum()*100/ward_agg['tot_housing_units_acs_13_17'].sum(),1)
+households_left = ward_agg['Uncounted Households'].sum()
+
+best_performer = int(ward_agg[ward_agg['Percent Counted']==ward_agg['Percent Counted'].max()]['ward'].values[0])
+
+#Create a function that returns a dictionary of all the household count stats per ward
+def counted_per_ward(ward_number):
+    counted = ward_agg[ward_agg['ward']==ward_number]['Counted Households'].values[0]
+    uncounted = ward_agg[ward_agg['ward']==ward_number]['Uncounted Households'].values[0]
+    per_counted = ward_agg[ward_agg['ward']==ward_number]['Percent Counted'].values[0]
+    per_uncounted = ward_agg[ward_agg['ward']==ward_number]['Percent Uncounted'].values[0]
+    counted_dict = {"Num_Counted": counted,
+                   "Num_Uncounted": uncounted,
+                   "Perc_Counted": per_counted,
+                   "Perc_Uncounted": per_uncounted}
+    return counted_dict
+
+#Pull daily response rate data
+query = """SELECT rates.gidtr, rates.date, rates.rate, viz.ward
+            FROM cic.daily_response_rates_2010 as rates
+            JOIN cic.visualization_table as viz
+            ON viz.gidtr=rates.gidtr"""
+drate_j_ward = civis.io.read_civis_sql(query,database='City of Chicago',use_pandas = True)
+drate_j_ward.dropna(inplace=True)
+
+drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
+
+#real dates to be used later
+#today = np.datetime64('today')
+#last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
+#last_week_begin = last_week_end - np.timedelta64(7,'D')
+
+#comment this out later to use real dates
+today = np.datetime64('2010-04-27')
+last_week_end = np.datetime64('2010-04-20')
+last_week_begin = np.datetime64('2010-04-13')
+
+#masks to select for weeks
+this_week_mask = (drate_j_ward['date'] > last_week_end) & (drate_j_ward['date'] <= today)
+last_week_mask = (drate_j_ward['date'] > last_week_begin) & (drate_j_ward['date'] <= last_week_end)
+
+#subsetting data by week
+this_week = drate_j_ward.loc[this_week_mask]
+last_week = drate_j_ward.loc[last_week_mask]
+
+#Calculate rates for the last two weeks of each ward
+ward_weekly_rates = []
+for i in range (1,51):
+    ward = i
+    this_week_rate = this_week.loc[(this_week['ward'] == ward)]['rate'].mean()
+    last_week_rate = last_week.loc[(last_week['ward'] == ward)]['rate'].mean()
+    ward_weekly_rates.append({'WARD' : ward,
+                          "This Week Rate" : this_week_rate,
+                         "Last Week Rate" : last_week_rate})
+ward_weekly_rate_df = pd.DataFrame(ward_weekly_rates)
+
+ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"] - ward_weekly_rate_df["Last Week Rate"]
+
+#Calculate most improved ward and the rate improvement
+max_weekly_rate_change = ward_weekly_rate_df["Rate_Change"].max()
+max_weekly_rate_change_percent = round(max_weekly_rate_change*100,1)
+most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == max_weekly_rate_change]["WARD"].values[0]
+
+##################################################################
+#Here starts the actual email generation
+
+#Function to create email_body (this is just markdown)
 def create_email_body(ward_number):
     email_body = f"""
     '''
@@ -37,15 +121,15 @@ def create_email_body(ward_number):
 
 Dear Ward {ward_number},
 
-Today is Week {weeks_of_census()} of the Census Response Period. As of today, 2,000 households in your ward have responded to the 2020 Census. This means there are about **24,000 households** left to count!
+Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_number)['Num_Uncounted']):,} households left to count**!
 
-Here are some additional facts about how Chicago wards are doing.
+Here are some additional facts about how Chicago wards are doing:
 
-* **Best performer** *: Ward 3 has had 21% of all its households respond so far (Your Ward is at 15%)
+* **Best performer** *: Ward {best_performer} has had {ward_agg['Percent Counted'].max()}% of all its households respond so far (Your Ward is at {counted_per_ward(ward_number)['Perc_Counted']}%)
 
-* **Most improved**: Ward 20 had a 21% increase in the number of households responding compared to last week (Your Ward is at 10%).
+* **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward is at {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)}%).
 
-Overall, 20% of all Chicagoans have responded to the Census. There are about 840,000 households left to count in Chicago.
+Overall, {total_reported_perc}% of all Chicagoans have responded to the Census. There are about {int(households_left):,} households left to count in Chicago.
 
 Remember, for every additional person counted in Chicago, the City receives approximately $1,400 to put towards parks, schools, and infrastructure!
 
@@ -60,8 +144,6 @@ def create_source_script(ward_number, ward_email_data):
     source_str = f"""import os \n
 import civis \n
 from datetime import date \n
-
-j = {ward_number}
 
 client = civis.APIClient()
 
