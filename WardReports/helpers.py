@@ -18,10 +18,11 @@ def weeks_of_census():
 
 #Create a function that returns a dictionary of all the household count stats per ward
 def counted_per_ward(ward_agg, ward_number):
-    counted = ward_agg[ward_agg['ward']==ward_number]['Counted Households'].values[0]
-    uncounted = ward_agg[ward_agg['ward']==ward_number]['Uncounted Households'].values[0]
-    per_counted = ward_agg[ward_agg['ward']==ward_number]['Percent Counted'].values[0]
-    per_uncounted = ward_agg[ward_agg['ward']==ward_number]['Percent Uncounted'].values[0]
+    subset = ward_agg[ward_agg['ward']==ward_number]
+    counted = subset['Counted Households'].values[0]
+    uncounted = subset['Uncounted Households'].values[0]
+    per_counted = subset['Percent Counted'].values[0]
+    per_uncounted = subset['Percent Uncounted'].values[0]
     counted_dict = {"Num_Counted": counted,
                    "Num_Uncounted": uncounted,
                    "Perc_Counted": per_counted,
