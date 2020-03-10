@@ -101,7 +101,7 @@ most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == m
 
 #Loop that calls function that makes new script per ward
 for i in range(25,27):
-    temp_job_id = create_new_email_script(i)['id']
+    temp_job_id = create_new_email_script(client, i)['id']
     print(temp_job_id)
     run_job_report = client.scripts.post_python3_runs(temp_job_id)
     print(run_job_report)
