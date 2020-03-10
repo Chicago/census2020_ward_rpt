@@ -90,8 +90,9 @@ def main():
     most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == max_weekly_rate_change]["WARD"].values[0]
 
     ward_stats = {"max_change" : max_weekly_rate_change,
-                    "max_change_percent" = max_weekly_rate_change_percent,
-                    "most_improved_ward" = most_improved_ward}
+                    "max_change_percent" : max_weekly_rate_change_percent,
+                    "most_improved_ward" : most_improved_ward}
+
     ##################################################################
     #Loop that calls function that makes new script per ward
     for i in range(25,27):
