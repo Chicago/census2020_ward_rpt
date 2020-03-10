@@ -21,12 +21,10 @@ def get_weekly_rate_df():
                 FROM cic.daily_response_rates_2010 as rates
                 JOIN cic.visualization_table as viz
                 ON viz.gidtr=rates.gidtr"""
-    drate_j_ward = civis.io.read_civis_sql(query,database='City of Chicago',use_pandas = True)
-    drate_j_ward.dropna(inplace=True)
+    drate_j_ward = civis.io.read_civis_sql(query, database = 'City of Chicago', use_pandas = True)
+    drate_j_ward.dropna(inplace = True)
 
     drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
-
-    #real dates to be used later
     drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
 
     #real dates to be used later
@@ -60,7 +58,7 @@ def get_weekly_rate_df():
     ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"] - ward_weekly_rate_df["Last Week Rate"]
 
     return ward_weekly_rate_df
-    
+
 #Create a function that returns a dictionary of all the household count stats per ward
 def counted_per_ward(ward_agg, ward_number):
     subset = ward_agg[ward_agg['ward']==ward_number]
