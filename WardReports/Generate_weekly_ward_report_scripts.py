@@ -94,7 +94,7 @@ def main():
     ##################################################################
     #Loop that calls function that makes new script per ward
     for i in range(25,27):
-        temp_job_id = create_new_email_script(client, i, ward_email_data, ward_agg, ward_stats)['id']
+        temp_job_id = create_new_email_script(client, i, ward_email_data, ward_agg, ward_weekly_rate_df, ward_stats)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
 
 if __name__ == '__main__':
