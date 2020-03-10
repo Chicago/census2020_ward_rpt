@@ -29,7 +29,16 @@ def counted_per_ward(ward_agg, ward_number):
     return counted_dict
 
 #Function to create email_body in markdown
-def create_email_body(ward_number, ward_agg, if_platform_user):
+def create_email_body(ward_number, ward_agg, ward_stats, if_platform_user):
+
+    total_reported_perc = round(ward_agg['Counted Households'].sum()*100/ward_agg['tot_housing_units_acs_13_17'].sum(),1)
+    households_left = ward_agg['Uncounted Households'].sum()
+
+    best_performer = int(ward_agg[ward_agg['Percent Counted']==ward_agg['Percent Counted'].max()]['ward'].values[0])
+
+    most_improved_ward = ward_stats["most_improved_ward"]
+    max_weekly_rate_change_percent = ward_stats["max_change_percent"]
+
     email_body1 = f"""
     '''
 ![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal_mobile_friendly.png)
@@ -78,14 +87,14 @@ client = civis.APIClient()
 
 client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
         'success_email_subject' : 'Weekly Census Report: Ward {ward_number}, {dt.date.today().strftime("%m/%d/%Y")}',
-        'success_email_body' : {create_email_body(ward_number,ward_agg,ward_email_data[ward_email_data['WARD']==ward_number]['Platform User'].values[0])},
+        'success_email_body' : {create_email_body(ward_number,ward_agg, ward_stats, ward_email_data[ward_email_data['WARD']==ward_number]['Platform User'].values[0])},
         'success_email_addresses' : ['{ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0]}']}})
         """
     return source_str
 
 
 #Define function that creates new script
-def create_new_email_script(client, ward_number, ward_email_data, ward_agg):
+def create_new_email_script(client, ward_number, ward_email_data, ward_agg, ward_stats):
     new_script = client.scripts.post_python3(name = 'Ward_'+str(ward_number) + '_script',
-                                source = create_source_script(ward_number,ward_email_data, ward_agg))
+                                source = create_source_script(ward_number,ward_email_data, ward_agg, ward_stats))
     return new_script

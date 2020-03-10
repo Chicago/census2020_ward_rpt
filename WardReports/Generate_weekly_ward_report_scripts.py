@@ -40,13 +40,6 @@ def main():
     ward_agg['Percent Counted'] = round(ward_agg['Counted Households']*100/ward_agg['tot_housing_units_acs_13_17'],1)
     ward_agg['Percent Uncounted'] = round(ward_agg['Uncounted Households']*100/ward_agg['tot_housing_units_acs_13_17'],1)
 
-    #Calculate City of Chicago uncounted stats
-    total_reported_perc = round(ward_agg['Counted Households'].sum()*100/ward_agg['tot_housing_units_acs_13_17'].sum(),1)
-    households_left = ward_agg['Uncounted Households'].sum()
-
-    best_performer = int(ward_agg[ward_agg['Percent Counted']==ward_agg['Percent Counted'].max()]['ward'].values[0])
-
-
 
     #Pull daily response rate data
     query = """SELECT rates.gidtr, rates.date, rates.rate, viz.ward
@@ -96,10 +89,13 @@ def main():
     max_weekly_rate_change_percent = round(max_weekly_rate_change*100,1)
     most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == max_weekly_rate_change]["WARD"].values[0]
 
+    ward_stats = {"max_change" : max_weekly_rate_change,
+                    "max_change_percent" = max_weekly_rate_change_percent,
+                    "most_improved_ward" = most_improved_ward}
     ##################################################################
     #Loop that calls function that makes new script per ward
     for i in range(25,27):
-        temp_job_id = create_new_email_script(client, i, ward_email_data, ward_agg)['id']
+        temp_job_id = create_new_email_script(client, i, ward_email_data, ward_agg, ward_stats)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
 
 if __name__ == '__main__':
