@@ -31,11 +31,9 @@ def counted_per_ward(ward_agg, ward_number):
 #Function to create email_body in markdown
 def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user):
 
-    total_reported_perc = round(ward_agg['Counted Households'].sum()*100/ward_agg['tot_housing_units_acs_13_17'].sum(),1)
-    households_left = ward_agg['Uncounted Households'].sum()
-
-    best_performer = int(ward_agg[ward_agg['Percent Counted']==ward_agg['Percent Counted'].max()]['ward'].values[0])
-
+    total_reported_perc = ward_stats["total_reported_perc"]
+    households_left = ward_stats["households_left"]
+    best_performer = ward_stats["best_performer"]
     most_improved_ward = ward_stats["most_improved_ward"]
     max_weekly_rate_change_percent = ward_stats["max_change_percent"]
 
