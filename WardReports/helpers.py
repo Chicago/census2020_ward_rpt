@@ -17,7 +17,7 @@ def weeks_of_census():
     return weeks
 
 #Create a function that returns a dictionary of all the household count stats per ward
-def counted_per_ward(ward_number):
+def counted_per_ward(ward_agg, ward_number):
     counted = ward_agg[ward_agg['ward']==ward_number]['Counted Households'].values[0]
     uncounted = ward_agg[ward_agg['ward']==ward_number]['Uncounted Households'].values[0]
     per_counted = ward_agg[ward_agg['ward']==ward_number]['Percent Counted'].values[0]
@@ -37,7 +37,7 @@ def create_email_body(ward_number, ward_agg, if_platform_user):
 
 Dear Ward {ward_number},
 
-Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_number)['Num_Uncounted']):,} households left to count**!
+Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_number)['Num_Uncounted']):,} households left to count**!
 
 Here are some additional facts about how Chicago wards are doing:
 
