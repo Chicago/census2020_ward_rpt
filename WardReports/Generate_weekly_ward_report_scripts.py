@@ -22,8 +22,9 @@ ward_email_data = civis.io.read_civis(database='City of Chicago',
 #Generate fake table that should be replaced with actual ward table later
 wards = list(range(1,51))
 emails = ['srao@civisanalytics.com' for i in range(50)]
-ward_email_data = pd.DataFrame(list(zip(wards, emails)),
-               columns =['WARD', 'Ward_Office_Email'])
+platform_user = ['Yes' for i in range(25)] + ['No' for i in range(25)]
+ward_email_data = pd.DataFrame(list(zip(wards, emails, platform_user)),
+               columns =['WARD', 'Ward_Office_Email', 'Platform User'])
 
 #Number of weeks since the census started
 def weeks_of_census():
@@ -74,6 +75,9 @@ drate_j_ward.dropna(inplace=True)
 drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
 
 #real dates to be used later
+drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
+
+#real dates to be used later
 #today = np.datetime64('today')
 #last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
 #last_week_begin = last_week_end - np.timedelta64(7,'D')
@@ -91,7 +95,6 @@ last_week_mask = (drate_j_ward['date'] > last_week_begin) & (drate_j_ward['date'
 this_week = drate_j_ward.loc[this_week_mask]
 last_week = drate_j_ward.loc[last_week_mask]
 
-#Calculate rates for the last two weeks of each ward
 ward_weekly_rates = []
 for i in range (1,51):
     ward = i
@@ -112,11 +115,11 @@ most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == m
 ##################################################################
 #Here starts the actual email generation
 
-#Function to create email_body (this is just markdown)
-def create_email_body(ward_number):
-    email_body = f"""
+#Function to create email_body in markdown
+def create_email_body(ward_number, if_platform_user):
+    email_body1 = f"""
     '''
-![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal.png)
+![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal_mobile_friendly.png)
 
 
 Dear Ward {ward_number},
@@ -134,12 +137,25 @@ Overall, {total_reported_perc}% of all Chicagoans have responded to the Census. 
 Remember, for every additional person counted in Chicago, the City receives approximately $1,400 to put towards parks, schools, and infrastructure!
 
 *Performance is measured based on how well each ward is performing relative to performance in the 2010 Census
+
 '''
 """
+
+    if if_platform_user == 'Yes':
+        email_body2 = """ +
+'''
+Find out more at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)'''
+"""
+
+    try:
+        email_body = email_body1 + email_body2
+    except:
+        email_body = email_body1
+
     return email_body
 
 
-#Create function that defines the "source script" of the new script that get generated, inc ward email address
+#Create function that defines the "source script" of the new script that get generated (sends to ward emails)
 def create_source_script(ward_number, ward_email_data):
     source_str = f"""import os \n
 import civis \n
@@ -148,8 +164,8 @@ from datetime import date \n
 client = civis.APIClient()
 
 client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
-        'success_email_subject' : 'Ward {ward_number} Report {dt.date.today().strftime("%m/%d/%Y")}',
-        'success_email_body' : {create_email_body(ward_number)},
+        'success_email_subject' : 'Weekly Census Report: Ward {ward_number}, {dt.date.today().strftime("%m/%d/%Y")}',
+        'success_email_body' : {create_email_body(ward_number,ward_email_data[ward_email_data['WARD']==ward_number]['Platform User'].values[0])},
         'success_email_addresses' : ['{ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0]}']}})
         """
     return source_str
@@ -162,8 +178,8 @@ def create_new_email_script(ward_number):
     return new_script
 
 
-#Loop that calls function that makes new script
-for i in range(1,51):
+#Loop that calls function that makes new script per ward
+for i in range(25,27):
     temp_job_id = create_new_email_script(i)['id']
     print(temp_job_id)
     run_job_report = client.scripts.post_python3_runs(temp_job_id)
