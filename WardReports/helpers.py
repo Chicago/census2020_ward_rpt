@@ -37,11 +37,11 @@ def create_email_body(ward_number, ward_agg, if_platform_user):
 
 Dear Ward {ward_number},
 
-Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_number)['Num_Uncounted']):,} households left to count**!
+Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_agg, ward_number)['Num_Uncounted']):,} households left to count**!
 
 Here are some additional facts about how Chicago wards are doing:
 
-* **Best performer** *: Ward {best_performer} has had {ward_agg['Percent Counted'].max()}% of all its households respond so far (Your Ward is at {counted_per_ward(ward_number)['Perc_Counted']}%)
+* **Best performer** *: Ward {best_performer} has had {ward_agg['Percent Counted'].max()}% of all its households respond so far (Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_Counted']}%)
 
 * **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward is at {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)}%).
 
