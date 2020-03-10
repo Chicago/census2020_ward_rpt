@@ -97,15 +97,10 @@ def main():
     most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == max_weekly_rate_change]["WARD"].values[0]
 
     ##################################################################
-    #Here starts the actual email generation
-
-
     #Loop that calls function that makes new script per ward
     for i in range(25,27):
-        temp_job_id = create_new_email_script(client, i, ward_email_data)['id']
-        print(temp_job_id)
+        temp_job_id = create_new_email_script(client, i, ward_email_data, ward_agg)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
-        print(run_job_report)
 
 if __name__ == '__main__':
     main()
