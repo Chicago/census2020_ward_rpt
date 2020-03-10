@@ -16,6 +16,51 @@ def weeks_of_census():
     weeks = math.floor(num_days/7)
     return weeks
 
+def get_weekly_rate_df():
+    query = """SELECT rates.gidtr, rates.date, rates.rate, viz.ward
+                FROM cic.daily_response_rates_2010 as rates
+                JOIN cic.visualization_table as viz
+                ON viz.gidtr=rates.gidtr"""
+    drate_j_ward = civis.io.read_civis_sql(query,database='City of Chicago',use_pandas = True)
+    drate_j_ward.dropna(inplace=True)
+
+    drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
+
+    #real dates to be used later
+    drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
+
+    #real dates to be used later
+    #today = np.datetime64('today')
+    #last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
+    #last_week_begin = last_week_end - np.timedelta64(7,'D')
+
+    #comment this out later to use real dates
+    today = np.datetime64('2010-04-27')
+    last_week_end = np.datetime64('2010-04-20')
+    last_week_begin = np.datetime64('2010-04-13')
+
+    #masks to select for weeks
+    this_week_mask = (drate_j_ward['date'] > last_week_end) & (drate_j_ward['date'] <= today)
+    last_week_mask = (drate_j_ward['date'] > last_week_begin) & (drate_j_ward['date'] <= last_week_end)
+
+    #subsetting data by week
+    this_week = drate_j_ward.loc[this_week_mask]
+    last_week = drate_j_ward.loc[last_week_mask]
+
+    ward_weekly_rates = []
+    for i in range (1,51):
+        ward = i
+        this_week_rate = this_week.loc[(this_week['ward'] == ward)]['rate'].mean()
+        last_week_rate = last_week.loc[(last_week['ward'] == ward)]['rate'].mean()
+        ward_weekly_rates.append({'WARD' : ward,
+                              "This Week Rate" : this_week_rate,
+                             "Last Week Rate" : last_week_rate})
+    ward_weekly_rate_df = pd.DataFrame(ward_weekly_rates)
+
+    ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"] - ward_weekly_rate_df["Last Week Rate"]
+
+    return ward_weekly_rate_df
+    
 #Create a function that returns a dictionary of all the household count stats per ward
 def counted_per_ward(ward_agg, ward_number):
     subset = ward_agg[ward_agg['ward']==ward_number]

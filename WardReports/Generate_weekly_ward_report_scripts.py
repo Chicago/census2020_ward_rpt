@@ -38,49 +38,8 @@ def main():
     ward_agg['Percent Counted'] = round(ward_agg['Counted Households']*100/ward_agg['tot_housing_units_acs_13_17'],1)
     ward_agg['Percent Uncounted'] = round(ward_agg['Uncounted Households']*100/ward_agg['tot_housing_units_acs_13_17'],1)
 
-
-    #Pull daily response rate data
-    query = """SELECT rates.gidtr, rates.date, rates.rate, viz.ward
-                FROM cic.daily_response_rates_2010 as rates
-                JOIN cic.visualization_table as viz
-                ON viz.gidtr=rates.gidtr"""
-    drate_j_ward = civis.io.read_civis_sql(query,database='City of Chicago',use_pandas = True)
-    drate_j_ward.dropna(inplace=True)
-
-    drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
-
-    #real dates to be used later
-    drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
-
-    #real dates to be used later
-    #today = np.datetime64('today')
-    #last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
-    #last_week_begin = last_week_end - np.timedelta64(7,'D')
-
-    #comment this out later to use real dates
-    today = np.datetime64('2010-04-27')
-    last_week_end = np.datetime64('2010-04-20')
-    last_week_begin = np.datetime64('2010-04-13')
-
-    #masks to select for weeks
-    this_week_mask = (drate_j_ward['date'] > last_week_end) & (drate_j_ward['date'] <= today)
-    last_week_mask = (drate_j_ward['date'] > last_week_begin) & (drate_j_ward['date'] <= last_week_end)
-
-    #subsetting data by week
-    this_week = drate_j_ward.loc[this_week_mask]
-    last_week = drate_j_ward.loc[last_week_mask]
-
-    ward_weekly_rates = []
-    for i in range (1,51):
-        ward = i
-        this_week_rate = this_week.loc[(this_week['ward'] == ward)]['rate'].mean()
-        last_week_rate = last_week.loc[(last_week['ward'] == ward)]['rate'].mean()
-        ward_weekly_rates.append({'WARD' : ward,
-                              "This Week Rate" : this_week_rate,
-                             "Last Week Rate" : last_week_rate})
-    ward_weekly_rate_df = pd.DataFrame(ward_weekly_rates)
-
-    ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"] - ward_weekly_rate_df["Last Week Rate"]
+    #Pull daily response rate data and aggregate by week
+    ward_weekly_rate_df = get_weekly_rate_df()
 
     #Calculate most improved ward and the rate improvement
     total_reported_perc = round(ward_agg['Counted Households'].sum()*100/ward_agg['tot_housing_units_acs_13_17'].sum(),1)
