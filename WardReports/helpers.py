@@ -78,7 +78,7 @@ Find out more at the [Census Intelligence Center](https://platform.civisanalytic
 
 
 #Create function that defines the "source script" of the new script that get generated (sends to ward emails)
-def create_source_script(ward_number, ward_email_data, ward_agg):
+def create_source_script(ward_number, ward_email_data, ward_agg, ward_stats):
     source_str = f"""import os \n
 import civis \n
 from datetime import date \n

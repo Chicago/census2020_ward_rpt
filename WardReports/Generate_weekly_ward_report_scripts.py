@@ -8,8 +8,6 @@ import civis
 import os
 
 from helpers import *
-#########################################################
-#Pulling in data for email (to be transferred to a different script later)
 
 client = civis.APIClient()
 
