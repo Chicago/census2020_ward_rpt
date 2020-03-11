@@ -13,7 +13,7 @@ def weeks_of_census():
     today_date = dt.date.today()
     delta = today_date - census_start
     num_days = delta.days
-    weeks = math.floor(num_days/7)
+    weeks = math.ceil(num_days/7)
     return weeks
 
 def get_weekly_rate_df():
