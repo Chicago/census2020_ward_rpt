@@ -94,15 +94,15 @@ Today is week {weeks_of_census()} of the Census Response Period. As of today, {i
 
 Here are some additional facts about how Chicago wards are doing:
 
-* **Best performer** *: Ward {best_performer} has had {ward_agg['Percent Counted'].max()}% of all its households respond so far (Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_Counted']}%)
+* **Best performer** *: Ward {best_performer} is at {ward_agg['Percent Counted'].max()}% of its target 2020 response rate (Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_Counted']}%)
 
 * **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward is at {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)}%).
 
 Overall, {total_reported_perc}% of all Chicagoans have responded to the Census. There are about {int(households_left):,} households left to count in Chicago.
 
-Remember, for every additional person counted in Chicago, the City receives approximately $1,400 to put towards parks, schools, and infrastructure!
+Remember, for every additional person counted in Chicago, we stand to gain approximately $1,400 that could be used towards parks, schools, and infrastructure!
 
-*Performance is measured based on how well each ward is performing relative to performance in the 2010 Census
+*Target rates are based on each ward’s 2010 Census response rate and a city overall target of 75% response.
 
 '''
 """
