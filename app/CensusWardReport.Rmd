@@ -35,7 +35,7 @@ breaks <- seq(0, 45, by = 5)
 
 #this will actually make the map
 map1 <- tm_shape(ward_sf, is.master = TRUE) + 
-  tm_polygons(col = "low_response_score", palette = "YlOrRd", style="cont", alpha = .7, title = "Low       Response Score", breaks=breaks, popup.var = popups, group = "Relevant Ward Census Tracts") +
+  tm_polygons(col = "low_response_score", palette = c("#FFFFFF","#22556F"), style="cont", alpha = .7, title = "Low       Response Score", breaks=breaks, popup.var = popups, group = "Relevant Ward Census Tracts") +
   tm_layout(title = "Heatmap of Low Response Scores") +
   tm_view(view.legend.position = c("left", "bottom"))  +
   tm_basemap(server = "OpenMapSurfer.Roads") +
