@@ -33,13 +33,13 @@ def main():
     ward_df.dropna(inplace=True)
 
     #Calculate counted and uncounted households per ward
-    ward_df['Counted Households'] = round(ward_df['mail_return_rate_cen_2010'] * (ward_df['tot_housing_units_acs_13_17']/100))
-    ward_df['Uncounted Households'] = ward_df['tot_housing_units_acs_13_17'] - ward_df['Counted Households']
-    ward_df['Percent Counted'] = round(ward_df['Counted Households']*100/ward_df['tot_housing_units_acs_13_17'],1)
-    ward_df['Percent Uncounted'] = round(ward_df['Uncounted Households']*100/ward_df['tot_housing_units_acs_13_17'],1)
+    ward_df['Counted Households'] = round(ward_df['mail_return_rate_cen_2010'] * (ward_df['tot_occp_units_acs_13_17']/100))
+    ward_df['Uncounted Households'] = ward_df['tot_occp_units_acs_13_17'] - ward_df['Counted Households']
+    ward_df['Percent Counted'] = round(ward_df['Counted Households']*100/ward_df['tot_occp_units_acs_13_17'],1)
+    ward_df['Percent Uncounted'] = round(ward_df['Uncounted Households']*100/ward_df['tot_occp_units_acs_13_17'],1)
 
     #Calculate most improved ward and the rate improvement
-    total_reported_perc = round(ward_df['Counted Households'].sum()*100/ward_df['tot_housing_units_acs_13_17'].sum(),1)
+    total_reported_perc = round(ward_df['Counted Households'].sum()*100/ward_df['tot_occp_units_acs_13_17'].sum(),1)
     households_left = ward_df['Uncounted Households'].sum()
 
     #Pull daily response rate data and aggregate by week

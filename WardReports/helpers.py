@@ -74,8 +74,8 @@ def counted_per_ward(ward_agg, ward_number):
 
 #Function to get url for the custom ward report
 def get_ward_report_url(ward_number):
-    url = 'www.placeholder_website.com/ward'+str(ward_number)
-    return url
+    url = 'https://placeholder_website.com/ward'+str(ward_number)
+    return url[:-1]
 
 #Function to create email_body in markdown
 def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user):
@@ -109,21 +109,22 @@ Remember, for every additional person counted in Chicago, we stand to gain appro
 
 *Target rates are based on each ward’s 2010 Census response rate and a city overall target of 75% response.
 
-Find your custom ward report [here]({get_ward_report_url(ward_report)})
-
 '''
+"""
+
+    email_body2 = f""" +
+''' Find your custom ward report [here]({get_ward_report_url(ward_number)}).'''
 """
 
     if if_platform_user == 'Yes':
-        email_body2 = """ +
-'''
-Dig into the data at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)'''
+        email_body3 = """ +
+''' Dig into the data at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)'''
 """
 
     try:
-        email_body = email_body1 + email_body2
+        email_body = email_body1 + email_body2 + email_body3
     except:
-        email_body = email_body1
+        email_body = email_body1+ email_body2
 
     return email_body
 
