@@ -17,16 +17,12 @@ def weeks_of_census():
     return weeks
 
 def get_weekly_rate_df():
-    query = """SELECT rates.gidtr, rates.date, rates.rate, viz.ward
-                FROM cic.daily_response_rates_2010 as rates
-                JOIN cic.visualization_table as viz
-                ON viz.gidtr=rates.gidtr"""
-    drate_j_ward = civis.io.read_civis_sql(query, database = 'City of Chicago', use_pandas = True)
-    drate_j_ward.dropna(inplace = True)
+    query = """SELECT *
+                    FROM cic.ward_daily_rates_2010"""
+    ward_daily_rates = civis.io.read_civis_sql(query, database = 'City of Chicago', use_pandas = True)
+    ward_daily_rates.dropna(inplace = True)
 
-    drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
-    drate_j_ward['date'] = pd.to_datetime(drate_j_ward['date'])
-
+    ward_daily_rates['date'] = pd.to_datetime(ward_daily_rates['date'])
     #real dates to be used later
     #today = np.datetime64('today')
     #last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
@@ -38,21 +34,21 @@ def get_weekly_rate_df():
     last_week_begin = np.datetime64('2010-04-13')
 
     #masks to select for weeks
-    this_week_mask = (drate_j_ward['date'] > last_week_end) & (drate_j_ward['date'] <= today)
-    last_week_mask = (drate_j_ward['date'] > last_week_begin) & (drate_j_ward['date'] <= last_week_end)
+    this_week_mask = (ward_daily_rates['date'] > last_week_end) & (ward_daily_rates['date'] <= today)
+    last_week_mask = (ward_daily_rates['date'] > last_week_begin) & (ward_daily_rates['date'] <= last_week_end)
 
     #subsetting data by week
-    this_week = drate_j_ward.loc[this_week_mask]
-    last_week = drate_j_ward.loc[last_week_mask]
+    this_week = ward_daily_rates.loc[this_week_mask]
+    last_week = ward_daily_rates.loc[last_week_mask]
 
     ward_weekly_rates = []
     for i in range (1,51):
         ward = i
-        this_week_rate = this_week.loc[(this_week['ward'] == ward)]['rate'].mean()
-        last_week_rate = last_week.loc[(last_week['ward'] == ward)]['rate'].mean()
+        this_week_rate = this_week.loc[(this_week['ward'] == ward)]['response_rate'].mean()
+        last_week_rate = last_week.loc[(last_week['ward'] == ward)]['response_rate'].mean()
         ward_weekly_rates.append({'WARD' : ward,
-                              "This Week Rate" : this_week_rate,
-                             "Last Week Rate" : last_week_rate})
+                                  "This Week Rate" : this_week_rate,
+                                 "Last Week Rate" : last_week_rate})
     ward_weekly_rate_df = pd.DataFrame(ward_weekly_rates)
 
     ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"] - ward_weekly_rate_df["Last Week Rate"]
