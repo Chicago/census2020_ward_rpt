@@ -86,7 +86,7 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
 
     email_body1 = f"""
     '''
-![City of Chicago Logo](https://drive.google.com/file/d/1sPFEpysTlsvqbojS39UDuswgtU1yHdjK/view)
+![City of Chicago Logo](https://github.com/Chicago/census2020_ward_rpt/blob/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal_mobile_friendly.png)
 
 
 Dear Ward {ward_number},
