@@ -45,7 +45,10 @@ def main():
     #Pull daily response rate data and aggregate by week
     ward_weekly_rate_df = get_weekly_rate_df()
 
-    best_performer = int(ward_df[ward_df['Percent Counted']==ward_df['Percent Counted'].max()]['ward'].values[0])
+    #Calculate percent to civis_adjusted target
+    ward_df['Percent to Target'] = round(ward_df['Percent Counted']*100/ward_df['adjusted_civis_2020_target'],1)
+
+    best_performer = int(ward_df[ward_df['Percent to Target']==ward_df['Percent to Target'].max()]['ward'].values[0])
     max_weekly_rate_change = ward_weekly_rate_df["Rate_Change"].max()
     max_weekly_rate_change_percent = round(max_weekly_rate_change*100,1)
     most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == max_weekly_rate_change]["WARD"].values[0]
