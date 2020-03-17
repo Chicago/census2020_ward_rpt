@@ -22,7 +22,7 @@ def get_weekly_rate_df():
     ward_daily_rates = civis.io.read_civis_sql(query, database = 'City of Chicago', use_pandas = True)
     ward_daily_rates.dropna(inplace = True)
 
-    ward_daily_rates['date'] = pd.to_datetime(ward_daily_rates['date'])
+    ward_daily_rates['response_date'] = pd.to_datetime(ward_daily_rates['response_date'])
     #real dates to be used later
     #today = np.datetime64('today')
     #last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
@@ -86,7 +86,7 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
 
     email_body1 = f"""
     '''
-![City of Chicago Logo](https://github.com/Chicago/census2020_ward_rpt/blob/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal_mobile_friendly.png)
+![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal.png)
 
 
 Dear Ward {ward_number},
