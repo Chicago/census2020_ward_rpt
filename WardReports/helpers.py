@@ -34,8 +34,8 @@ def get_weekly_rate_df():
     last_week_begin = np.datetime64('2010-04-13')
 
     #masks to select for weeks
-    this_week_mask = (ward_daily_rates['date'] > last_week_end) & (ward_daily_rates['date'] <= today)
-    last_week_mask = (ward_daily_rates['date'] > last_week_begin) & (ward_daily_rates['date'] <= last_week_end)
+    this_week_mask = (ward_daily_rates['response_date'] > last_week_end) & (ward_daily_rates['response_date'] <= today)
+    last_week_mask = (ward_daily_rates['response_date'] > last_week_begin) & (ward_daily_rates['response_date'] <= last_week_end)
 
     #subsetting data by week
     this_week = ward_daily_rates.loc[this_week_mask]
