@@ -86,7 +86,7 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
 
     email_body1 = f"""
     '''
-![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal_mobile_friendly.png)
+![City of Chicago Logo](https://drive.google.com/file/d/1sPFEpysTlsvqbojS39UDuswgtU1yHdjK/view)
 
 
 Dear Ward {ward_number},
@@ -99,7 +99,7 @@ Here are some additional facts about how Chicago wards are doing:
 
 * **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward's increase {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)}%).
 
-Overall, {total_reported_perc}% of all Chicagoans have responded to the Census. There are about {int(households_left):,} households left in Chicago which have not responded.
+Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
 
 Remember, for every additional person counted in Chicago, we stand to gain approximately $1,400 that could be used towards parks, schools, and infrastructure!
 
