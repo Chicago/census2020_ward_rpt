@@ -58,14 +58,16 @@ def get_weekly_rate_df():
 #Create a function that returns a dictionary of all the household count stats per ward
 def counted_per_ward(ward_agg, ward_number):
     subset = ward_agg[ward_agg['ward']==ward_number]
-    counted = subset['Counted Households'].values[0]
-    uncounted = subset['Uncounted Households'].values[0]
-    per_counted = subset['Percent Counted'].values[0]
-    per_uncounted = subset['Percent Uncounted'].values[0]
+    counted = subset['counted_households'].values[0]
+    uncounted = subset['uncounted_households'].values[0]
+    per_counted = subset['percent_counted'].values[0]
+    per_uncounted = subset['percent_uncounted'].values[0]
+    per_to_target = subset['percent_to_target'].values[0]
     counted_dict = {"Num_Counted": counted,
                    "Num_Uncounted": uncounted,
                    "Perc_Counted": per_counted,
-                   "Perc_Uncounted": per_uncounted}
+                   "Perc_Uncounted": per_uncounted,
+                   "Perc_to_Target": per_to_target}
     return counted_dict
 
 #Function to get url for the custom ward report
@@ -95,9 +97,9 @@ Today is week {weeks_of_census()} of the Census Response Period. As of today, {i
 
 Here are some additional facts about how Chicago wards are doing:
 
-* **Best performer** *: Ward {best_performer} is at {ward_agg['Percent Counted'].max()}% of its target 2020 response rate (Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_Counted']}%)
+* **Best performer** *: Ward {best_performer} is at {ward_agg['percent_to_target'].max()}% of its target 2020 response rate (Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_to_Target']}% of your target)
 
-* **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward's increase {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)}%).
+* **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward's increase was {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)}%).
 
 Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
 
