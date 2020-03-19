@@ -7,9 +7,9 @@ library(markdown)
 library(rmarkdown)
 library(sf)
 library(tmap)
-library("leaflet")
-library("colorspace")
-library("rgdal")
+library(leaflet)
+library(colorspace)
+library(rgdal)
 library(reactable)
 
 #merge data frames into shapefile 
@@ -22,5 +22,5 @@ tmap_mode("view")
 for(community in sort(unique(shp_community@data$community))){
     rmarkdown::render("app/CensusCAReport.Rmd", 
                       output_file =  paste("report_", community, '_', Sys.Date(), ".html", sep=''), 
-                      output_dir = "CAReports")
+                      output_dir = "reports_by_community_area")
 }
