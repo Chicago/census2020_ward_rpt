@@ -41,7 +41,7 @@ def main():
 
     best_performer = int(ward_df[ward_df['percent_to_target']==ward_df['percent_to_target'].max()]['ward'].values[0])
     max_weekly_rate_change = ward_weekly_rate_df["Rate_Change"].max()
-    max_weekly_rate_change_percent = round(max_weekly_rate_change*100,1)
+    max_weekly_rate_change_percent = round(max_weekly_rate_change,1)
     most_improved_ward = ward_weekly_rate_df[ward_weekly_rate_df["Rate_Change"] == max_weekly_rate_change]["WARD"].values[0]
 
     stats = { "total_reported_perc" : total_reported_perc,

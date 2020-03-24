@@ -18,20 +18,22 @@ def weeks_of_census():
 
 def get_weekly_rate_df():
     query = """SELECT *
-                    FROM cic.ward_daily_rates_2010"""
+                FROM cic.ward_daily_rates_2020"""
     ward_daily_rates = civis.io.read_civis_sql(query, database = 'City of Chicago', use_pandas = True)
     ward_daily_rates.dropna(inplace = True)
 
     ward_daily_rates['response_date'] = pd.to_datetime(ward_daily_rates['response_date'])
-    #real dates to be used later
-    #today = np.datetime64('today')
-    #last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
-    #last_week_begin = last_week_end - np.timedelta64(7,'D')
+    #2020 date ranges
+    today = np.datetime64('today')
+    last_week_end = np.datetime64('today') - np.timedelta64(7,'D')
+    last_week_begin = last_week_end - np.timedelta64(7,'D')
 
-    #comment this out later to use real dates
+    #test code for 2010 dates
+    '''
     today = np.datetime64('2010-04-27')
     last_week_end = np.datetime64('2010-04-20')
     last_week_begin = np.datetime64('2010-04-13')
+    '''
 
     #masks to select for weeks
     this_week_mask = (ward_daily_rates['response_date'] > last_week_end) & (ward_daily_rates['response_date'] <= today)
@@ -46,6 +48,8 @@ def get_weekly_rate_df():
         ward = i
         this_week_rate = this_week.loc[(this_week['ward'] == ward)]['response_rate'].mean()
         last_week_rate = last_week.loc[(last_week['ward'] == ward)]['response_rate'].mean()
+        if math.isnan(last_week_rate):
+            last_week_rate = 0
         ward_weekly_rates.append({'WARD' : ward,
                                   "This Week Rate" : this_week_rate,
                                  "Last Week Rate" : last_week_rate})
@@ -84,7 +88,7 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
     most_improved_ward = ward_stats["most_improved_ward"]
     max_weekly_rate_change_percent = ward_stats["max_change_percent"]
 
-    ward_email_rate = round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)
+    ward_email_rate = round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0],2)
 
     email_body1 = f"""
     '''
@@ -99,7 +103,7 @@ Here are some additional facts about how Chicago wards are doing:
 
 * **Best performer** *: Ward {best_performer} is at {ward_agg['percent_to_target'].max()}% of its target 2020 response rate (Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_to_Target']}% of your target)
 
-* **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward's increase was {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0]*100,2)}%).
+* **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward's increase was {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0],2)}%).
 
 Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
 
