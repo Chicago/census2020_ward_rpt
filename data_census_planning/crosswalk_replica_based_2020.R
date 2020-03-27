@@ -172,6 +172,48 @@ shortnames <- data.table(TRACT = shp_tracts_2020$GEOID,
 
 crosswalk <- merge(crosswalk, shortnames, "TRACT", all.x=T)
 setnames(crosswalk, "N", "households")
+
+## WRITE CSV *******************************************************************
 write.csv(crosswalk, 
           "data_census_planning/crosswalk_replica_based.csv",
           row.names = FALSE)
+
+
+##------------------------------------------------------------------------------
+## Summarize Households by tract and ward to create crosswalk:
+##------------------------------------------------------------------------------
+
+cw_to_2020 <- pophs[ , .N, keyby = list(TRACT_2020, TRACT_prev)]
+cw_to_2020[is.na(TRACT_2020) | is.na(TRACT_prev)]
+cw_to_2020 <- cw_to_2020[!(is.na(TRACT_2020) | is.na(TRACT_prev))]
+cw_to_2020 <- cw_to_2020[cw_to_2020[,.(tot2020=sum(N)),keyby=TRACT_2020]]
+
+cw_to_2020[ , allocation := N / tot2020]
+cw_to_2020
+cw_to_2020[allocation!=1]
+
+
+## WRITE CSV *******************************************************************
+write.csv(cw_to_2020, 
+          "data_census_planning/crosswalk_to_2020.csv",
+          row.names = FALSE)
+
+
+##------------------------------------------------------------------------------
+## Summarize Households by tract and ward to create crosswalk:
+##------------------------------------------------------------------------------
+
+cw_to_prev <- pophs[ , .N, keyby = list(TRACT_2020, TRACT_prev)]
+cw_to_prev[is.na(TRACT_2020) | is.na(TRACT_prev)]
+cw_to_prev <- cw_to_prev[!(is.na(TRACT_2020) | is.na(TRACT_prev))]
+cw_to_prev <- cw_to_prev[cw_to_prev[,.(totprev=sum(N)),keyby = TRACT_prev]]
+
+cw_to_prev[ , allocation := N / totprev]
+cw_to_prev[allocation!=1]
+
+
+## WRITE CSV *******************************************************************
+write.csv(cw_to_prev, 
+          "data_census_planning/crosswalk_from_2020.csv",
+          row.names = FALSE)
+
