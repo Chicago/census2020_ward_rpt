@@ -25,14 +25,11 @@ shp_tracts@data <- base::merge(y = htc, x = shp_tracts@data, by.y = "GEOIDtxt", 
 # rank <- civis_pdb[ , c(1:10, 271:286)]
 # rank <- as.data.table(rank)
 
-#Create the weighted response value
-civis_pdb[ , handicap := low_response_score / mean(low_response_score, na.rm=T)]
-civis_pdb[ , weightedresponse := mail_return_rate_cen_2010 * handicap]
 
 rankdt<- civis_pdb[i = TRUE,
-                   .(mean_response = mean(mail_return_rate_cen_2010, na.rm = TRUE), 
-                     mean_handicap = mean(handicap, na.rm = TRUE), 
-                     mean_weightedresponse = mean(weightedresponse, na.rm = TRUE)), 
+                   j= list(mean_response = mean(mail_return_rate_cen_2010, na.rm = TRUE), 
+                           mean_handicap = mean(handicap, na.rm = TRUE), 
+                           mean_weightedresponse = mean(weightedresponse, na.rm = TRUE)), 
                    by = "ward"]
 rankings <- rank(rankdt$mean_weightedresponse)
 

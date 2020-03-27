@@ -7,7 +7,9 @@
 
 #this code section is  all the R code we want to run to prepare objects for the report itself. All processing, reformatting, library loading, etc. should be done in this r chunk. Actually creating the maps and tables and any text should be done in later code sections. 
 
-#Create the ward-specific overlap files to be used in the making the map and table
+##------------------------------------------------------------------------------
+## Create the ward-specific overlap files to be used in the making the map and table
+##------------------------------------------------------------------------------
 ward_tract_overlap1 <- gWithin(spgeom1 = shp_tracts, 
                                spgeom2 = shp_wards[shp_wards@data$ward == ward, ],
                                byid = TRUE) 
@@ -24,7 +26,9 @@ rm(ward_tract_overlap)
 #convert file to tmap format
 ward_sf <- st_as_sf(ward_spdf, crs = 4326)
 
-#make the map
+##------------------------------------------------------------------------------
+## make the map
+##------------------------------------------------------------------------------
 #start by defining variables that will pop up and breaks
 popups <- c("NAMELSAD", "low_response_score", "tot_population_cen_2010", "tot_housing_units_cen_2010", "nh_blk_alone_acs_13_17", "hispanic_acs_13_17", "eng_vw_acs_13_17", "HH_SingleParent")
 breaks <- seq(0, 45, by = 5)
@@ -41,7 +45,9 @@ map1 <- tm_shape(ward_sf, is.master = TRUE) +
   tm_shape(shp_wards[shp_wards@data$ward == ward, ]) +
   tm_borders(col = "blue", lwd=3, group = paste0("Ward ", ward, " Outline"))
 
-#Next, make a data table to show ward demographics - that will be saved as dt2
+##------------------------------------------------------------------------------
+## data table to show ward demographics - that will be saved as dt2
+##------------------------------------------------------------------------------
 dt2<- dt[, .(low_response_score, tot_population_cen_2010, nh_blk_alone_acs_13_17, 
              hispanic_acs_13_17, tot_housing_units_cen_2010, eng_vw_acs_13_17,
              HH_SingleParent), by = "NAMELSAD"]
@@ -55,12 +61,18 @@ dt2[, c("perc_LEP", "perc_SP"):=list((eng_vw_acs_13_17/tot_housing_units_cen_201
 #This requires creating a function for coloring purposes
 YlOrRd <- function(x) rgb(colorRamp(c("#fff7ba", "#fee28a", "#fec05b", "#fd923e", "#fc502a", "#df171c", "#b00026"))(x), maxColorValue = 255)
 
+##------------------------------------------------------------------------------
+## Reactable table
+##------------------------------------------------------------------------------
 table <- reactable(dt2, columns = list (
   NAMELSAD = colDef(name = "Census Tract"),
   low_response_score = colDef(name = "Low Response Score", defaultSortOrder = "desc", 
                               style = function(value) {
-                                if (!is.numeric(value)) return(min(shp_tracts@data$low_response_score, na.rm=TRUE))
-                                normalized <- (value - min(shp_tracts@data$low_response_score, na.rm=TRUE)) / (max(shp_tracts@data$low_response_score, na.rm=TRUE) - min(shp_tracts@data$low_response_score, na.rm=TRUE))
+                                if (!is.numeric(value)) return(min(shp_tracts@data$low_response_score,
+                                                                   na.rm=TRUE))
+                                normalized <- (value - min(shp_tracts@data$low_response_score, na.rm=TRUE)) /
+                                  (max(shp_tracts@data$low_response_score, na.rm=TRUE) -
+                                     min(shp_tracts@data$low_response_score, na.rm=TRUE))
                                 color <- YlOrRd(normalized)
                                 list(background = color)
                               }),

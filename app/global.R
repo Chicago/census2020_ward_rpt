@@ -85,13 +85,27 @@ civis_pdb <- read_civis_query("SELECT gidtr, state, state_name, county,
                               WHERE
                               county=31 AND state=17")
 
-#Create the weighted response value
+## Create the weighted response value
 civis_pdb[ , handicap := low_response_score / mean(low_response_score, na.rm=T)]
 civis_pdb[ , weightedresponse := mail_return_rate_cen_2010 * handicap]
 
-#Also load the Civis Ward-tract crosswalk file
+## Add back leading zeros to tract numbers
+## Check result with: table(nchar(civis_pdb$tract))
+civis_pdb[ , tract := sprintf("%06i", as.integer(tract))]
+
+## Civis Ward-tract crosswalk file
 crosswalk <- fread("data_census_planning/crosswalk.csv")
+
+## Convert tract to 6 digit string, including leading zeros
 crosswalk[ , census_tract := census_tract * 100]
+crosswalk[ , census_tract := sprintf("%06i", as.integer(census_tract))]
+
+## Check
+table(shp_tracts$TRACTCE %in% crosswalk$census_tract)
+# plot(shp_tracts)
+# plot(shp_tracts[!shp_tracts$TRACTCE %in% civis_pdb$tract, ], add=T,col="red")
+# plot(shp_tracts[!as.numeric(shp_tracts$TRACTCE) %in% civis_pdb$tract, ], add=T,col="blue")
+
 
 #use the Civis crosswalk file to assign each tract to a ward
 #NOTE: There seems to be a problem with this - we lose some rows. Is there a better way to do this?
@@ -101,18 +115,24 @@ civis_pdb <- merge(x = civis_pdb,
                    sort = F,
                    all.x = TRUE)
 # table(civis_pdb$tract %in% crosswalk$census_tract)
-# NAsummary(civis_pdb)
+# geneorama::NAsummary(civis_pdb)
 # 
 # str(shp_tracts@data)
-# table(civis_pdb$tract %in% shp_tracts$TRACTCE)
-# table(shp_tracts$TRACTCE %in% civis_pdb$tract)
-length(crosswalk$census_tract)
-table(crosswalk$census_tract %in% civis_pdb$tract)
-table(crosswalk$census_tract %in% shp_tracts$TRACTCE)
-table(shp_tracts$TRACTCE %in% crosswalk$census_tract)
+# table(civis_pdb$tract %in% shp_tracts$TRACTCE) # F:448 / T:874
+# table(shp_tracts$TRACTCE %in% civis_pdb$tract) # T:871
+# length(crosswalk$census_tract) # 802
+# table(crosswalk$census_tract %in% civis_pdb$tract) # F:1 / T:801
+# table(crosswalk$census_tract %in% shp_tracts$TRACTCE) # F:1 / T:801
+# table(shp_tracts$TRACTCE %in% crosswalk$census_tract) # F:73 / T:798
 # dim(shp_tracts)
 # plot(shp_tracts)
 # plot(shp_tracts[!shp_tracts$TRACTCE %in% civis_pdb$tract, ], add=T,col="red")
+# plot(shp_tracts[!as.numeric(shp_tracts$TRACTCE) %in% civis_pdb$tract, ], add=T,col="blue")
+
+# 
+# table(as.numeric(crosswalk$census_tract) %in% as.numeric(civis_pdb$tract))
+# table(as.numeric(crosswalk$census_tract) %in% as.numeric(shp_tracts$TRACTCE))
+# table(as.numeric(shp_tracts$TRACTCE) %in% as.numeric(crosswalk$census_tract))
 
 
 ## Ward visualization table
@@ -121,6 +141,9 @@ civis_ward_table <- read_civis_query("select * from cic.ward_visualization_table
 
 ## Daily visualization rates
 civis_daily_rates <- as.data.table(civis::read_civis("cic.ward_daily_rates_2020", database="City of Chicago"))
-# dailyrates[ , .N, keyby=list(ward, response_date)]
+# civis_daily_rates[ , .N, keyby=list(ward, response_date)]
+
+civis_daily_rates_tract <- as.data.table(civis::read_civis("public.raw_data_2020", database="City of Chicago"))
+
 
 
