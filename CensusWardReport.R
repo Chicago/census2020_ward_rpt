@@ -1,5 +1,5 @@
 #This script assumes you have run global.R prior to running this script. 
-app
+
 rm(list=ls())
 source("global.R")
 
