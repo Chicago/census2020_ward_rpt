@@ -1,7 +1,7 @@
 #This script assumes you have run global.R prior to running this script. 
-
+app
 rm(list=ls())
-source("app/global.R")
+source("global.R")
 
 #Initialize libraries
 library(knitr)
@@ -37,7 +37,7 @@ rankings <- rank(rankdt$mean_weightedresponse)
 tmap_mode("view")
 
 for(ward in sort(unique(shp_wards@data$ward))){
-    rmarkdown::render("app/CensusWardReport.Rmd", 
+    rmarkdown::render("CensusWardReport.Rmd", 
                       output_file =  paste("report_", ward, '_', Sys.Date(), ".html", sep=''), 
                       output_dir = "reports_by_ward")
 }

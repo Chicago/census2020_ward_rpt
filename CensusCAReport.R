@@ -20,7 +20,7 @@ shp_tracts@data <- base::merge(y = htc, x = shp_tracts@data, by.y = "GEOIDtxt", 
 tmap_mode("view")
 
 for(community in sort(unique(shp_community@data$community))){
-    rmarkdown::render("app/CensusCAReport.Rmd", 
+    rmarkdown::render("CensusCAReport.Rmd", 
                       output_file =  paste("report_", community, '_', Sys.Date(), ".html", sep=''), 
                       output_dir = "reports_by_community_area")
 }
