@@ -34,6 +34,9 @@ if(FALSE){
         cat("writing file\n")
         fwrite(resp, fname)
     }
+    ## Import column descriptions
+    vars <- fread("data_daily_resp_cook/apivars.csv")
+    vars[match(colnames(resp), name), list(name, label)]
     
     ############################################################################
     ## censusapi examples
