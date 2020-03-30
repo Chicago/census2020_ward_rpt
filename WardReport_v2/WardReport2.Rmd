@@ -6,6 +6,9 @@ output: html_document
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+
+geneorama::set_project_dir("census2020_ward_rpt")
+
 # rm(list=ls())
 
 library(shiny)
@@ -26,17 +29,56 @@ sourceDir("functions")
 
 
 load("data_ward_report_cache/2020-03-30.RData")
+
+##*********************
+##*********************
+##*********************
 cur_wrd <- 2
+##*********************
+##*********************
+##*********************
+
+
+## Merge civis and response data into census data
+shp_tracts_2020@data <- cbind(shp_tracts_2020@data,
+                              civis_pdb[match(shp_tracts_2020@data$TRACT, tract)],
+                              resp_current[match(shp_tracts_2020@data$TRACT, TRACT),
+                                           list(RESP_DATE, CRRALL,CRRINT)])
+
+cols_bright <- diverging_hcl(n = 7, h = c(360, 138), c = c(144, 42), l = c(67, 82), power = c(0.45, 1.1))
+cols_muted <- diverging_hcl(n = 7, h = c(340, 128), c = c(60, 80), l = c(30, 97), power = c(0.8, 1.5))
+
+cur_pal <- cols_muted
+
 ```
 
 # Census 2020 Ward Report
 # Ward `r cur_wrd`
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
-# output$wardmap <- renderLeaflet({
-#   
-# })
-# leafletOutput(outputId, width = "100%", height = 400)
+output$citymap <- renderLeaflet({
+  # #convert file to tmap format
+  # ward_sf <- st_as_sf(ward_spdf, crs = 4326)
+  
+  ################################################################################
+  ## Ward map
+  ################################################################################
+  vec <- shp_tracts_2020$CRRALL
+  pal <- colorNumeric(palette = cur_pal, domain = vec)
+  leaflet() %>%
+    addProviderTiles("Stamen.TonerHybrid") %>% 
+    addPolygons(data = shp_tracts_2020,
+                fillColor = ~ pal(vec),
+                fillOpacity = 0.7, weight = 0.5,
+                # label = ~ ward_spdf$TRACT,
+                label = ~ vec) %>%
+    addLegend(pal = pal, 
+              values = vec, 
+              title = "Cumulative Response Rate",
+              position = "bottomright")
+  
+})
+leafletOutput("citymap", width = "50%", height = 400)
 ```
 
 
@@ -51,26 +93,15 @@ tracts_in_ward <- shp_tracts_2020@data[ii, "TRACT"]
 
 ## Subset map to ward
 ward_spdf <- shp_tracts_2020[ii, ]
-## Add in civis pdb data
-ward_spdf@data <- cbind(ward_spdf@data,
-                        civis_pdb[match(tracts_in_ward, tract)],
-                        resp_current[match(tracts_in_ward, TRACT),
-                                     list(RESP_DATE, CRRALL,CRRINT)])
+
 # #convert file to tmap format
 # ward_sf <- st_as_sf(ward_spdf, crs = 4326)
 
 
-################################################################################
-## Ward map
-################################################################################
-
-cols_bright <- diverging_hcl(n = 7, h = c(360, 138), c = c(144, 42), l = c(67, 82), power = c(0.45, 1.1))
-cols_muted <- diverging_hcl(n = 7, h = c(340, 128), c = c(60, 80), l = c(30, 97), power = c(0.8, 1.5))
-
 output$wardmap <- renderLeaflet({
   vec <- ward_spdf$CRRALL
   pal <- colorNumeric(palette = cols_muted, domain = vec)
-  m1 <- leaflet() %>%
+  leaflet() %>%
     addProviderTiles("Stamen.TonerHybrid") %>% 
     addPolygons(data = ward_spdf,
                 fillColor = ~ pal(vec),
@@ -81,7 +112,6 @@ output$wardmap <- renderLeaflet({
               values = vec, 
               title = "Cumulative Response Rate",
               position = "bottomright")
-  m1
 })
 leafletOutput("wardmap", width = "50%", height = 400)
 ```
@@ -113,7 +143,7 @@ plotlyOutput("daily_performance", width = "50%")
 ```
 
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 ##------------------------------------------------------------------------------
 ## data table to show ward demographics - that will be saved as dt2
 ##------------------------------------------------------------------------------
@@ -150,8 +180,7 @@ stylefn <- function(value) {
   color <- YlOrRd(normalized)
   list(background = color)
 }
-output$ward_demographics <- renderReactable({
-  reactable(dt2, 
+rtable <- reactable(dt2, 
             columns = list (TRACT = colDef(name = "Census Tract"),
                             low_response_score = colDef(name = "Low Response Score", 
                                                         defaultSortOrder = "desc", 
@@ -172,8 +201,9 @@ output$ward_demographics <- renderReactable({
                                          columns = c("tot_housing_units_cen_2010", "eng_vw_acs_13_17", 
                                                      "perc_LEP", "HH_SingleParent", "perc_SP"))),
             bordered = TRUE, resizable = TRUE, defaultSorted = "low_response_score")
-})
+output$ward_demographics <- renderReactable({rtable})
 reactableOutput("ward_demographics")
+
 # #Next, use Reactable to come up with a rank table that highlights the specific position
 # #the ward has in comparison to other wards. 
 # rowfn <- function(index) {
