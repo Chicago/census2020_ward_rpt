@@ -39,5 +39,5 @@ tmap_mode("view")
 for(ward in sort(unique(shp_wards@data$ward))){
     rmarkdown::render("CensusWardReport.Rmd", 
                       output_file =  paste("report_", ward, '_', Sys.Date(), ".html", sep=''), 
-                      output_dir = "reports_by_ward")
+                      output_dir = "WardReport_v1\output")
 }

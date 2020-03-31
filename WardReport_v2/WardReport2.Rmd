@@ -1,11 +1,16 @@
-
 ---
-runtime: shiny
-output: html_document
+title: "Census 2020 Ward Level Results"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    social: menu
+    source_code: embed
 ---
 
+```{r, include = FALSE}
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+## See: https://github.com/Chicago/census2020_ward_rpt/
 
 geneorama::set_project_dir("census2020_ward_rpt")
 
@@ -23,17 +28,19 @@ library(plotly)
 # library(tmap)
 library(sf)
 library(reactable)
+library(tmap)
 
 source("functions/sourceDir.R")
 sourceDir("functions")
 
 
-load("data_ward_report_cache/2020-03-30.RData")
-
+## LOAD CURRENT DATA AND CURRENT WARD
 ##*********************
 ##*********************
 ##*********************
-cur_wrd <- 2
+load(max(list.files("WardReport_v2/cache", full.names = T)))
+cur_wrd <- yaml::read_yaml("WardReport_v2/cur_ward.yaml")
+cur_wrd <- cur_wrd$cur_wrd
 ##*********************
 ##*********************
 ##*********************
@@ -52,40 +59,36 @@ cur_pal <- cols_muted
 
 ```
 
-# Census 2020 Ward Report
-# Ward `r cur_wrd`
+Row {data-height=650}
+-------------------------------------
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-output$citymap <- renderLeaflet({
-  # #convert file to tmap format
-  # ward_sf <- st_as_sf(ward_spdf, crs = 4326)
-  
-  ################################################################################
-  ## Ward map
-  ################################################################################
-  vec <- shp_tracts_2020$CRRALL
-  pal <- colorNumeric(palette = cur_pal, domain = vec)
-  leaflet() %>%
-    addProviderTiles("Stamen.TonerHybrid") %>% 
-    addPolygons(data = shp_tracts_2020,
-                fillColor = ~ pal(vec),
-                fillOpacity = 0.7, weight = 0.5,
-                # label = ~ ward_spdf$TRACT,
-                label = ~ vec) %>%
-    addLegend(pal = pal, 
-              values = vec, 
-              title = "Cumulative Response Rate",
-              position = "bottomright")
-  
-})
-leafletOutput("citymap", width = "50%", height = 400)
+### Citywide performance
+
+```{r}
+# output$citymap <- renderLeaflet({
+## Citywide map
+vec <- shp_tracts_2020$CRRALL
+pal <- colorNumeric(palette = cur_pal, domain = vec)
+leaflet() %>%
+  addProviderTiles("Stamen.TonerHybrid") %>% 
+  addPolygons(data = shp_tracts_2020,
+              fillColor = ~ pal(vec),
+              fillOpacity = 0.7, weight = 0.5,
+              # label = ~ ward_spdf$TRACT,
+              label = ~ vec) %>%
+  addLegend(pal = pal, 
+            values = vec, 
+            title = "Cumulative Response Rate",
+            position = "bottomright")
+
+# })
+# leafletOutput("citymap", width = "50%", height = 400)
 ```
 
+### Ward `r cur_wrd`
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-##------------------------------------------------------------------------------
+```{r,include=TRUE}
 ## Create the ward-specific overlap files to be used in the making the map and table
-##------------------------------------------------------------------------------
 ii <- which(gOverlaps(spgeom1 = shp_tracts_2020, 
                       spgeom2 = shp_wards[shp_wards@data$ward == cur_wrd, ],
                       byid = TRUE)[1,])
@@ -94,56 +97,108 @@ tracts_in_ward <- shp_tracts_2020@data[ii, "TRACT"]
 ## Subset map to ward
 ward_spdf <- shp_tracts_2020[ii, ]
 
+# output$wardmap <- renderLeaflet({
+vec <- ward_spdf$CRRALL
+pal <- colorNumeric(palette = cols_muted, domain = vec)
+leaflet() %>%
+  addProviderTiles("Stamen.TonerHybrid") %>% 
+  addPolygons(data = ward_spdf,
+              fillColor = ~ pal(vec),
+              fillOpacity = 0.7, weight = 0.5,
+              # label = ~ ward_spdf$TRACT,
+              label = ~ vec) %>%
+  addLegend(pal = pal, 
+            values = vec, 
+            title = "Cumulative Response Rate",
+            position = "bottomright")
+# })
+# leafletOutput("wardmap", width = "50%", height = 400)
+```
+
+```{r, include=FALSE}
+
+## TMAP VERSION NOT WORKING BECAUSE IT WON'T RENDER IN DASHBOARD
+
+# ## Create the ward-specific overlap files to be used in the making the map and table
+# ii <- which(gOverlaps(spgeom1 = shp_tracts_2020, 
+#                       spgeom2 = shp_wards[shp_wards@data$ward == cur_wrd, ],
+#                       byid = TRUE)[1,])
+# tracts_in_ward <- shp_tracts_2020@data[ii, "TRACT"]
+# 
+# ## Subset map to ward
+# ward_spdf <- shp_tracts_2020[ii, ]
+# head(ward_spdf@data)
+# 
 # #convert file to tmap format
 # ward_sf <- st_as_sf(ward_spdf, crs = 4326)
-
-
-output$wardmap <- renderLeaflet({
-  vec <- ward_spdf$CRRALL
-  pal <- colorNumeric(palette = cols_muted, domain = vec)
-  leaflet() %>%
-    addProviderTiles("Stamen.TonerHybrid") %>% 
-    addPolygons(data = ward_spdf,
-                fillColor = ~ pal(vec),
-                fillOpacity = 0.7, weight = 0.5,
-                # label = ~ ward_spdf$TRACT,
-                label = ~ vec) %>%
-    addLegend(pal = pal, 
-              values = vec, 
-              title = "Cumulative Response Rate",
-              position = "bottomright")
-})
-leafletOutput("wardmap", width = "50%", height = 400)
-```
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-# Here, we draw the diversity gradient with ggplotly
-output$daily_performance <- renderPlotly({
-  cur_title <- paste0("Cumulative Respone Rate\n Ward", cur_wrd)
-  cur_ylab <- "Household % Responding"
-  cur_xlab <- ""
-  
-  
-  fig <- plot_ly(data = civis_daily_rates[!ward==cur_wrd], 
-                 x = ~response_date, y = ~response_rate, 
-                 # color = ~ward,
-                 color = I("grey80"), name = "other wards",
-                 type = "scatter", mode="lines")
-  fig <- layout(fig,
-                title = cur_title,
-                xaxis = list(title = cur_xlab),
-                yaxis = list (title = cur_ylab))
-  fig <- civis_daily_rates[ward==cur_wrd, 
-                           add_lines(fig, x=response_date, y=response_rate,
-                                     name = paste("Ward", cur_wrd),
-                                     color = I("blue"))]
-  fig
-})
-plotlyOutput("daily_performance", width = "50%")
+# 
+# ##------------------------------------------------------------------------------
+# ## Ward map based on Civis planning database
+# ##------------------------------------------------------------------------------
+# #start by defining variables that will pop up and breaks
+# popups <- c("tract", "low_response_score", "tot_population_cen_2010",
+#             "tot_housing_units_cen_2010", "nh_blk_alone_acs_13_17",
+#             "hispanic_acs_13_17", "eng_vw_acs_13_17"
+#             # , "HH_SingleParent"
+#             )
+# breaks <- seq(0, 45, by = 5)
+# 
+# popups%in% colnames(ward_spdf@data)
+# 
+# #this will actually make the map
+# map1 <- tm_shape(ward_sf, is.master = TRUE) +
+#   tm_polygons(col = "low_response_score", palette = c("#FFFFFF","#22556F"),
+#               style="cont", alpha = .7, title = "Low       Response Score",
+#               breaks=breaks, popup.var = popups,
+#               group = "Relevant Ward Census Tracts") +
+#   tm_layout(title = "Heatmap of Low Response Scores") +
+#   tm_view(view.legend.position = c("left", "bottom"))  +
+#   tm_basemap(server = "OpenMapSurfer.Roads") +
+#   tm_shape(ward_spdf) +
+#   tm_borders(col = "black", lwd=3, group = paste0("Ward ", cur_wrd, " Outline"))
+# # current.mode <- tmap_mode(c("plot", "view")[2])
+# tmap_leaflet(map1)
 ```
 
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+Row {data-height=650}
+-------------------------------------
+
+### Daily results for Ward `r cur_wrd`
+
+```{r}
+# output$daily_performance <- renderPlotly({
+cur_title <- paste0("Cumulative Respone Rate\n Ward", cur_wrd)
+cur_ylab <- "Household % Responding"
+cur_xlab <- ""
+
+
+fig <- plot_ly(data = civis_daily_rates[!ward==cur_wrd], 
+               x = ~response_date, y = ~response_rate, 
+               # color = ~ward,
+               color = I("grey80"), name = "other wards",
+               type = "scatter", mode="lines")
+fig <- layout(fig,
+              title = cur_title,
+              xaxis = list(title = cur_xlab),
+              yaxis = list (title = cur_ylab))
+fig <- civis_daily_rates[ward==cur_wrd, 
+                         add_lines(fig, x=response_date, y=response_rate,
+                                   name = paste("Ward", cur_wrd),
+                                   color = I("blue"))]
+fig
+# })
+# plotlyOutput("daily_performance", width = "50%")
+```
+
+
+Row {data-height=650}
+-------------------------------------
+
+### Census tract demographics within `r cur_wrd`
+
+
+```{r}
 ##------------------------------------------------------------------------------
 ## data table to show ward demographics - that will be saved as dt2
 ##------------------------------------------------------------------------------
@@ -181,28 +236,32 @@ stylefn <- function(value) {
   list(background = color)
 }
 rtable <- reactable(dt2, 
-            columns = list (TRACT = colDef(name = "Census Tract"),
-                            low_response_score = colDef(name = "Low Response Score", 
-                                                        defaultSortOrder = "desc", 
-                                                        style = stylefn),
-                            tot_population_cen_2010 = colDef(name = "Total"),
-                            nh_blk_alone_acs_13_17 = colDef(name = "Black"), 
-                            hispanic_acs_13_17 = colDef(name = "Hispanic"),
-                            tot_housing_units_cen_2010 = colDef(name = "Total"),
-                            eng_vw_acs_13_17 = colDef(name = "Limited English Proficiency (LEP)"),
-                            perc_LEP = colDef(name = "% LEP", format = colFormat(digits = 2)),
-                            HH_SingleParent = colDef(name = "Single Parent"),
-                            perc_SP = colDef(name = "% Single Parent", format = colFormat(digits = 2))
-            ), 
-            columnGroups = list(colGroup(name = "Population", 
-                                         columns = c("tot_population_cen_2010", "nh_blk_alone_acs_13_17",
-                                                     "hispanic_acs_13_17")),
-                                colGroup(name = "Households", 
-                                         columns = c("tot_housing_units_cen_2010", "eng_vw_acs_13_17", 
-                                                     "perc_LEP", "HH_SingleParent", "perc_SP"))),
-            bordered = TRUE, resizable = TRUE, defaultSorted = "low_response_score")
-output$ward_demographics <- renderReactable({rtable})
-reactableOutput("ward_demographics")
+                    defaultColDef = colDef(align = "center",
+                                           maxWidth = 70,
+                                           headerStyle = list(background = "#f7f7f8")),
+                    columns = list (TRACT = colDef(name = "Census Tract"),
+                                    low_response_score = colDef(name = "Low Response Score", 
+                                                                defaultSortOrder = "desc", 
+                                                                style = stylefn),
+                                    tot_population_cen_2010 = colDef(name = "Total"),
+                                    nh_blk_alone_acs_13_17 = colDef(name = "Black"), 
+                                    hispanic_acs_13_17 = colDef(name = "Hispanic"),
+                                    tot_housing_units_cen_2010 = colDef(name = "Total"),
+                                    eng_vw_acs_13_17 = colDef(name = "Limited English Proficiency (LEP)"),
+                                    perc_LEP = colDef(name = "% LEP", format = colFormat(digits = 2)),
+                                    HH_SingleParent = colDef(name = "Single Parent"),
+                                    perc_SP = colDef(name = "% Single Parent", format = colFormat(digits = 2))
+                    ), 
+                    columnGroups = list(colGroup(name = "Population", 
+                                                 columns = c("tot_population_cen_2010", "nh_blk_alone_acs_13_17",
+                                                             "hispanic_acs_13_17")),
+                                        colGroup(name = "Households", 
+                                                 columns = c("tot_housing_units_cen_2010", "eng_vw_acs_13_17", 
+                                                             "perc_LEP", "HH_SingleParent", "perc_SP"))),
+                    bordered = TRUE, resizable = TRUE, defaultSorted = "low_response_score")
+rtable
+# output$ward_demographics <- renderReactable({rtable})
+# reactableOutput("ward_demographics")
 
 # #Next, use Reactable to come up with a rank table that highlights the specific position
 # #the ward has in comparison to other wards. 
@@ -228,7 +287,7 @@ reactableOutput("ward_demographics")
 
 
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, include=FALSE}
 # # ward <- 1
 # 
 # ##------------------------------------------------------------------------------
