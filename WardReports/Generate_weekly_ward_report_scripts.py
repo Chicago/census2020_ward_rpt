@@ -53,7 +53,7 @@ def main():
 
     ##################################################################
     #Loop that calls function that makes new script per ward
-    for ward_number in range(24,28):
+    for ward_number in range(23,24):
         temp_job_id = create_new_email_script(client, ward_number, ward_email_data, ward_df, ward_weekly_rate_df, stats)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
 

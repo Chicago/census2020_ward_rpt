@@ -54,8 +54,8 @@ def get_weekly_rate_df():
                                   "This Week Rate" : this_week_rate,
                                  "Last Week Rate" : last_week_rate})
     ward_weekly_rate_df = pd.DataFrame(ward_weekly_rates)
+    ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"]*100/ward_weekly_rate_df["Last Week Rate"]
 
-    ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"] - ward_weekly_rate_df["Last Week Rate"]
 
     return ward_weekly_rate_df
 
@@ -98,15 +98,34 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
 Dear Ward {ward_number},
 
 Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_agg, ward_number)['Num_Uncounted']):,} households which have not responded**!
+Your ward has a self-response rate of {round(int(counted_per_ward(ward_agg,ward_number)['Perc_Counted']),1)}%. Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
 
 Here are some additional facts about how Chicago wards are doing:
 
-* **Best performer** *: Ward {best_performer} is at {ward_agg['percent_to_target'].max()}% of its target 2020 response rate (Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_to_Target']}% of your target)
+* **Best performer** *: Ward {best_performer} is at {ward_agg['percent_to_target'].max()}% of its target 2020 response rate '''"""
+    if best_performer==ward_number:
+        best_str = f"""+'''(Keep up the good work Ward {ward_number}!)
 
-* **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week (Your Ward's increase was {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0],2)}%).
+        '''"""
+    else:
+        best_str = f"""+'''(Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_to_Target']}% of your target)
 
-Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
+        '''"""
 
+    email_body2= f"""+
+'''
+* **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week '''"""
+    if most_improved_ward==ward_number:
+        improved_str = f"""+'''(Keep up the good work Ward {ward_number}!)
+
+        '''"""
+    else:
+        improved_str = f"""+'''(Your Ward's increase was {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0],2)}%).
+
+        '''"""
+
+    email_body3= f"""+
+'''
 Remember, for every additional person counted in Chicago, we stand to gain approximately $1,400 that could be used towards parks, schools, and infrastructure!
 
 *Target rates are based on each ward’s 2010 Census response rate and a city overall target of 75% response.
@@ -114,19 +133,19 @@ Remember, for every additional person counted in Chicago, we stand to gain appro
 '''
 """
 
-    email_body2 = f""" +
+    email_body4 = f""" +
 ''' Find your custom ward report [here]({get_ward_report_url(ward_number)}).'''
 """
 
     if if_platform_user == 'Yes':
-        email_body3 = """ +
+        email_body5 = """ +
 ''' Dig into the data at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)'''
 """
 
     try:
-        email_body = email_body1 + email_body2 + email_body3
+        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3 + email_body4
     except:
-        email_body = email_body1+ email_body2
+        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3
 
     return email_body
 
