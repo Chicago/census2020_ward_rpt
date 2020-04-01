@@ -3,9 +3,10 @@ title: "Census 2020 Ward Level Results"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
-    vertical_layout: fill
+    vertical_layout: scroll #fill
     social: menu
     source_code: embed
+runtime: shiny
 ---
 
 ```{r, include = FALSE}
@@ -29,6 +30,7 @@ library(plotly)
 library(sf)
 library(reactable)
 library(tmap)
+library(flexdashboard)
 
 source("functions/sourceDir.R")
 sourceDir("functions")
@@ -39,8 +41,8 @@ sourceDir("functions")
 ##*********************
 ##*********************
 load(max(list.files("WardReport_v2/cache", full.names = T)))
-cur_wrd <- yaml::read_yaml("WardReport_v2/cur_ward.yaml")
-cur_wrd <- cur_wrd$cur_wrd
+cur_ward <- yaml::read_yaml("WardReport_v2/cur_ward.yaml")
+cur_ward <- cur_ward$cur_ward
 ##*********************
 ##*********************
 ##*********************
@@ -52,40 +54,143 @@ shp_tracts_2020@data <- cbind(shp_tracts_2020@data,
                               resp_current[match(shp_tracts_2020@data$TRACT, TRACT),
                                            list(RESP_DATE, CRRALL,CRRINT)])
 
-cols_bright <- diverging_hcl(n = 7, h = c(360, 138), c = c(144, 42), l = c(67, 82), power = c(0.45, 1.1))
-cols_muted <- diverging_hcl(n = 7, h = c(340, 128), c = c(60, 80), l = c(30, 97), power = c(0.8, 1.5))
-
+## Map color definitions
+cols_bright <- diverging_hcl(n = 7, h = c(360, 138), c = c(144, 42), 
+                             l = c(67, 82), power = c(0.45, 1.1))
+cols_muted <- diverging_hcl(n = 7, h = c(340, 128), c = c(60, 80), 
+                            l = c(30, 97), power = c(0.8, 1.5))
 cur_pal <- cols_muted
+
+## Ward / tract crosswalk
+ward_crosswalk <- fread("data_census_planning/crosswalk_replica_based.csv")
+ward_crosswalk[ , tract := substr(TRACT, 6, 11)]
+
+## City wide response
+city_target_resp <- 75
+city_cur_resp <- civis_ward_table[
+  i = TRUE,
+  j = sum(tot_occp_units_acs_13_17 * current_response_rate) / sum(tot_occp_units_acs_13_17)]
+city_target_resp_civis <- civis_ward_table[
+  i = TRUE,
+  j = sum(tot_occp_units_acs_13_17 * civis_2020_target) / sum(tot_occp_units_acs_13_17)]
+city_cur_resp <- round(city_cur_resp, 1)
+
+## Ward specific respopnse
+## Calculate ward households
+resp_cur_ward <- merge(ward_crosswalk[ward==cur_ward], 
+                       resp_current, by.x="tract",
+                       by.y="TRACT")
+ward_target_resp <- civis_ward_table[cur_ward, adjusted_civis_2020_target]
+ward_cur_resp <- civis_ward_table[cur_ward, current_response_rate]
+ward_target_resp_civis <- civis_ward_table[cur_ward, civis_2020_target]
+
+## Household totals for value boxes
+ward_hh_tot <- resp_cur_ward[ , round(sum(households * allocation))]
+ward_hh_resp_daily <- resp_cur_ward[ , round(sum(households * allocation * DRRALL/100))]
+ward_hh_resp_total <- resp_cur_ward[ , round(sum(households * allocation * CRRALL/100))]
+
 ```
 
-Row {data-height=650}
+
+Row {data-height=120}
 -------------------------------------
 
-### Citywide performance
-
+### Ward Total Gauge
 ```{r}
-vec <- shp_tracts_2020$CRRALL
-pal <- colorNumeric(palette = cur_pal, domain = vec)
-leaflet() %>%
-  addProviderTiles("Stamen.TonerHybrid") %>% 
-  addPolygons(data = shp_tracts_2020,
-              fillColor = ~ pal(vec),
-              fillOpacity = 0.7, weight = 0.5,
-              # label = ~ ward_spdf$TRACT,
-              label = ~ vec) %>%
-  addLegend(pal = pal, 
-            values = vec, 
-            title = "% Resp Rate",
-            position = "bottomright")
-
+gauge(value = ward_cur_resp,
+      label = "Ward",
+      symbol = "%",
+      min = 0, 
+      max = 100, 
+      gaugeSectors(success = c(ward_target_resp, 100), 
+                   warning = c(ward_target_resp_civis, ward_target_resp), 
+                   danger = c(0, ward_target_resp_civis)))
 ```
 
-### Ward `r cur_wrd`
+### City Total Gauge
+```{r}
+gauge(value = city_cur_resp,
+      label = "City",
+      symbol = "%",
+      min = 0, 
+      max = 100, 
+      gaugeSectors(success = c(city_target_resp, 100), 
+                   warning = c(city_target_resp-20, city_target_resp), 
+                   danger = c(0, city_target_resp-20)))
+```
+
+### Ward
+```{r}
+valueBox(value =  prettyNum(ward_hh_tot, big.mark = ","), 
+         caption = "total households",
+         icon = "fa-pencil",
+         color = "info")
+```
+
+### Ward
+```{r}
+valueBox(value = prettyNum(ward_hh_resp_daily, big.mark = ","), 
+         caption = paste0("Responses for ", 
+                          max(resp_current$RESP_DATE, na.rm=T)),
+         icon = "fa-pencil",
+         color = "info")
+```
+
+### Ward
+```{r}
+valueBox(value = prettyNum(ward_hh_resp_total, big.mark = ","), 
+         caption = "Cumulative Responses",
+         icon = "fa-pencil",
+         color = "info")
+```
+
+
+Row {data-height=400}
+-------------------------------------
+
+### Daily results for Ward `r cur_ward`
+
+```{r}
+# output$daily_performance <- renderPlotly({
+fig <- plot_ly(data = civis_daily_rates[!ward==cur_ward], 
+               x = ~response_date, y = ~response_rate, 
+               # color = ~ward,
+               color = I("grey80"), name = "other wards",
+               type = "scatter", mode="lines")
+fig <- layout(fig,
+              title = paste0("Cumulative Daily Respone Rate\n Ward", cur_ward),
+              xaxis = list(title = "Household % Responding"),
+              yaxis = list (title = ""))
+fig <- civis_daily_rates[ward==cur_ward, 
+                         add_lines(fig, x=response_date, y=response_rate,
+                                   name = paste("Ward", cur_ward),
+                                   color = I("blue"))]
+fig <- fig %>%
+  layout(shapes = list(plotly_vline("2020-04-30", dash = "dash"), 
+                       plotly_hline(ward_target_resp, dash = "dot", color = "green"),
+                       plotly_hline(100, dash = "solid")),
+         margin = list(t=120))
+         # default margins:
+         # margin = list(l = 80, r = 80, b = 80, t = 100, pad = 0)
+fig <- add_text(fig, 
+                x=as.IDate("2020-03-20"), y=ward_target_resp+5,
+                text = "Goal response rate", color = I("gray20"), showlegend = FALSE)
+fig
+
+# })
+# plotlyOutput("daily_performance", width = "50%")
+```
+
+    
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Ward `r cur_ward`
 
 ```{r}
 ## Create the ward-specific overlap files to be used in the making the map and table
 ii <- which(gOverlaps(spgeom1 = shp_tracts_2020,
-                      spgeom2 = shp_wards[shp_wards@data$ward == cur_wrd, ],
+                      spgeom2 = shp_wards[shp_wards@data$ward == cur_ward, ],
                       byid = TRUE)[1,])
 tracts_in_ward <- shp_tracts_2020@data[ii, "TRACT"]
 
@@ -110,40 +215,29 @@ leaflet() %>%
 # leafletOutput("wardmap", width = "50%", height = 400)
 ```
 
-Row {data-height=650}
--------------------------------------
-
-### Daily results for Ward `r cur_wrd`
+### Citywide performance
 
 ```{r}
-# output$daily_performance <- renderPlotly({
-cur_title <- paste0("Cumulative Respone Rate\n Ward", cur_wrd)
-cur_ylab <- "Household % Responding"
-cur_xlab <- ""
+vec <- shp_tracts_2020$CRRALL
+pal <- colorNumeric(palette = cur_pal, domain = vec)
+leaflet() %>%
+  addProviderTiles("Stamen.TonerHybrid") %>% 
+  addPolygons(data = shp_tracts_2020,
+              fillColor = ~ pal(vec),
+              fillOpacity = 0.7, weight = 0.5,
+              # label = ~ ward_spdf$TRACT,
+              label = ~ vec) %>%
+  addLegend(pal = pal, 
+            values = vec, 
+            title = "% Resp Rate",
+            position = "bottomright")
 
-
-fig <- plot_ly(data = civis_daily_rates[!ward==cur_wrd], 
-               x = ~response_date, y = ~response_rate, 
-               # color = ~ward,
-               color = I("grey80"), name = "other wards",
-               type = "scatter", mode="lines")
-fig <- layout(fig,
-              title = cur_title,
-              xaxis = list(title = cur_xlab),
-              yaxis = list (title = cur_ylab))
-fig <- civis_daily_rates[ward==cur_wrd, 
-                         add_lines(fig, x=response_date, y=response_rate,
-                                   name = paste("Ward", cur_wrd),
-                                   color = I("blue"))]
-fig
-# })
-# plotlyOutput("daily_performance", width = "50%")
 ```
 
 Row {data-height=650}
 -------------------------------------
 
-### Census tract demographics for Ward `r cur_wrd`
+### Census tract demographics for Ward `r cur_ward`
 
 
 ```{r}
@@ -248,7 +342,7 @@ rtable
 
 # ## Create the ward-specific overlap files to be used in the making the map and table
 # ii <- which(gOverlaps(spgeom1 = shp_tracts_2020, 
-#                       spgeom2 = shp_wards[shp_wards@data$ward == cur_wrd, ],
+#                       spgeom2 = shp_wards[shp_wards@data$ward == cur_ward, ],
 #                       byid = TRUE)[1,])
 # tracts_in_ward <- shp_tracts_2020@data[ii, "TRACT"]
 # 
@@ -282,7 +376,7 @@ rtable
 #   tm_view(view.legend.position = c("left", "bottom"))  +
 #   tm_basemap(server = "OpenMapSurfer.Roads") +
 #   tm_shape(ward_spdf) +
-#   tm_borders(col = "black", lwd=3, group = paste0("Ward ", cur_wrd, " Outline"))
+#   tm_borders(col = "black", lwd=3, group = paste0("Ward ", cur_ward, " Outline"))
 # # current.mode <- tmap_mode(c("plot", "view")[2])
 # tmap_leaflet(map1)
 ```
