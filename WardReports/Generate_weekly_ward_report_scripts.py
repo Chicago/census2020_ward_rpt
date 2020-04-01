@@ -19,7 +19,7 @@ def main():
                                           use_pandas = True)
 
     #Generate fake table that should be replaced with actual ward table later
-"""
+    """
     wards = list(range(1,51))
     emails = ['srao@civisanalytics.com' for i in range(50)]
     platform_user = ['Yes' for i in range(25)] + ['No' for i in range(25)]
