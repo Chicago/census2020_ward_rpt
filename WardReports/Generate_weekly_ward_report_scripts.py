@@ -14,18 +14,18 @@ client = civis.APIClient()
 def main():
     #actual ward table import to be used once testing is complete
 
-    ward_email_data = civis.io.read_civis(database='City of Chicago',
+    ward_email_data_test = civis.io.read_civis(database='City of Chicago',
                                           table = 'scratch.ward_office_info',
                                           use_pandas = True)
 
     #Generate fake table that should be replaced with actual ward table later
-"""
+
     wards = list(range(1,51))
     emails = ['srao@civisanalytics.com' for i in range(50)]
     platform_user = ['Yes' for i in range(25)] + ['No' for i in range(25)]
     ward_email_data = pd.DataFrame(list(zip(wards, emails, platform_user)),
                    columns =['WARD', 'Ward_Office_Email', 'Platform User'])
-"""
+
 
     #Pull ward aggregation and household data
     query = """SELECT * FROM cic.ward_visualization_table;"""
@@ -53,7 +53,7 @@ def main():
 
     ##################################################################
     #Loop that calls function that makes new script per ward
-    for ward_number in range(1,51):
+    for ward_number in range(1,10):
         temp_job_id = create_new_email_script(client, ward_number, ward_email_data, ward_df, ward_weekly_rate_df, stats)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
         print(ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0])
