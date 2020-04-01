@@ -104,7 +104,7 @@ Here are some additional facts about how Chicago wards are doing:
 
 * **Best performer** *: Ward {best_performer} is at {ward_agg['percent_to_target'].max()}% of its target 2020 response rate '''"""
     if best_performer==ward_number:
-        best_str = f"""+'''(Keep up the good work ward {ward_number}!)
+        best_str = f"""+'''(Keep up the good work, ward {ward_number}!)
 
         '''"""
     else:
@@ -116,7 +116,7 @@ Here are some additional facts about how Chicago wards are doing:
 '''
 * **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week '''"""
     if most_improved_ward==ward_number:
-        improved_str = f"""+'''(Keep up the good work ward {ward_number}!)
+        improved_str = f"""+'''(Keep up the good work, ward {ward_number}!)
 
         '''"""
     else:
