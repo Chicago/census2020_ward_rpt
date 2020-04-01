@@ -97,9 +97,9 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
 
 Dear Ward {ward_number},
 
-Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_agg, ward_number)['Num_Uncounted']):,} households which have not responded**!
+Today is week {weeks_of_census()} of the Census Response Period. Your ward has a self-response rate of {counted_per_ward(ward_agg,ward_number)['Perc_Counted']}%. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_agg, ward_number)['Num_Uncounted']):,} households which have not responded**!
 
-Your ward has a self-response rate of {counted_per_ward(ward_agg,ward_number)['Perc_Counted']}%. Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
+Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
 
 Here are some additional facts about how Chicago wards are doing:
 
