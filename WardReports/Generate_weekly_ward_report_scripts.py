@@ -15,7 +15,7 @@ def main():
     #actual ward table import to be used once testing is complete
 
     ward_email_data_test = civis.io.read_civis(database='City of Chicago',
-                                          table = 'scratch.ward_office_info',
+                                          table = 'cic.ward_office_info',
                                           use_pandas = True)
 
     #Generate fake table that should be replaced with actual ward table later
