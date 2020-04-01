@@ -14,17 +14,17 @@ client = civis.APIClient()
 def main():
     #actual ward table import to be used once testing is complete
 
-    ward_email_data_test = civis.io.read_civis(database='City of Chicago',
+    ward_email_data = civis.io.read_civis(database='City of Chicago',
                                           table = 'cic.ward_office_info',
                                           use_pandas = True)
 
     #Generate fake table that should be replaced with actual ward table later
-
+"""
     wards = list(range(1,51))
     emails = ['srao@civisanalytics.com' for i in range(50)]
     platform_user = ['Yes' for i in range(25)] + ['No' for i in range(25)]
     ward_email_data = pd.DataFrame(list(zip(wards, emails, platform_user)),
-                   columns =['WARD', 'Ward_Office_Email', 'Platform User'])
+                   columns =['WARD', 'Ward_Office_Email', 'Platform User'])"""
 
 
     #Pull ward aggregation and household data
