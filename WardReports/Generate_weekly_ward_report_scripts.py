@@ -13,11 +13,11 @@ client = civis.APIClient()
 
 def main():
     #actual ward table import to be used once testing is complete
-    '''
-    ward_email_data = civis.io.read_civis(database='City of Chicago',
+
+    ward_email_data_test = civis.io.read_civis(database='City of Chicago',
                                           table = 'scratch.ward_office_info',
                                           use_pandas = True)
-                                          '''
+
 
     #Generate fake table that should be replaced with actual ward table later
     wards = list(range(1,51))
@@ -53,9 +53,10 @@ def main():
 
     ##################################################################
     #Loop that calls function that makes new script per ward
-    for ward_number in range(23,24):
+    for ward_number in range(1,51):
         temp_job_id = create_new_email_script(client, ward_number, ward_email_data, ward_df, ward_weekly_rate_df, stats)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
+        print(ward_email_data_test[ward_email_data_test['WARD']==ward_number]['Ward_Office_Email'].values[0])
 
 if __name__ == '__main__':
     main()

@@ -54,7 +54,7 @@ def get_weekly_rate_df():
                                   "This Week Rate" : this_week_rate,
                                  "Last Week Rate" : last_week_rate})
     ward_weekly_rate_df = pd.DataFrame(ward_weekly_rates)
-    ward_weekly_rate_df['Rate_Change'] = ward_weekly_rate_df["This Week Rate"]*100/ward_weekly_rate_df["Last Week Rate"]
+    ward_weekly_rate_df['Rate_Change'] = round((ward_weekly_rate_df["This Week Rate"]-ward_weekly_rate_df["Last Week Rate"])*100/ward_weekly_rate_df["Last Week Rate"],1)
 
 
     return ward_weekly_rate_df
@@ -98,17 +98,17 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
 Dear Ward {ward_number},
 
 Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_agg, ward_number)['Num_Uncounted']):,} households which have not responded**!
-Your ward has a self-response rate of {round(int(counted_per_ward(ward_agg,ward_number)['Perc_Counted']),1)}%. Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
+Your ward has a self-response rate of {int(counted_per_ward(ward_agg,ward_number)['Perc_Counted'])}%. Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
 
 Here are some additional facts about how Chicago wards are doing:
 
 * **Best performer** *: Ward {best_performer} is at {ward_agg['percent_to_target'].max()}% of its target 2020 response rate '''"""
     if best_performer==ward_number:
-        best_str = f"""+'''(Keep up the good work Ward {ward_number}!)
+        best_str = f"""+'''(Keep up the good work ward {ward_number}!)
 
         '''"""
     else:
-        best_str = f"""+'''(Your Ward is at {counted_per_ward(ward_agg, ward_number)['Perc_to_Target']}% of your target)
+        best_str = f"""+'''(Your ward is at {counted_per_ward(ward_agg, ward_number)['Perc_to_Target']}% of your target)
 
         '''"""
 
@@ -116,11 +116,11 @@ Here are some additional facts about how Chicago wards are doing:
 '''
 * **Most improved**: Ward {most_improved_ward} had a {max_weekly_rate_change_percent}% increase in the number of households responding compared to last week '''"""
     if most_improved_ward==ward_number:
-        improved_str = f"""+'''(Keep up the good work Ward {ward_number}!)
+        improved_str = f"""+'''(Keep up the good work ward {ward_number}!)
 
         '''"""
     else:
-        improved_str = f"""+'''(Your Ward's increase was {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0],2)}%).
+        improved_str = f"""+'''(Your ward's increase was {round(ward_weekly_rate_df[ward_weekly_rate_df['WARD']==ward_number]['Rate_Change'].values[0],2)}%).
 
         '''"""
 
@@ -143,7 +143,7 @@ Remember, for every additional person counted in Chicago, we stand to gain appro
 """
 
     try:
-        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3 + email_body4
+        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3 + email_body5
     except:
         email_body = email_body1 + best_str + email_body2 + improved_str + email_body3
 
@@ -160,7 +160,7 @@ client = civis.APIClient()
 
 client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
         'success_email_subject' : 'Weekly Census Report: Ward {ward_number}, {dt.date.today().strftime("%m/%d/%Y")}',
-        'success_email_body' : {create_email_body(ward_number,ward_agg, ward_weekly_rate_df, ward_stats, ward_email_data[ward_email_data['WARD']==ward_number]['Platform User'].values[0])},
+        'success_email_body' : {create_email_body(ward_number,ward_agg, ward_weekly_rate_df, ward_stats, 'Yes')},
         'success_email_addresses' : ['{ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0]}']}})
         """
     return source_str
@@ -168,6 +168,6 @@ client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
 
 #Define function that creates new script
 def create_new_email_script(client, ward_number, ward_email_data, ward_agg, ward_weekly_rate_df, ward_stats):
-    new_script = client.scripts.post_python3(name = 'Ward_'+str(ward_number) + '_script',
+    new_script = client.scripts.post_python3(name = 'Ward_'+str(ward_number) + '_Report',
                                 source = create_source_script(ward_number,ward_email_data, ward_agg, ward_weekly_rate_df, ward_stats))
     return new_script
