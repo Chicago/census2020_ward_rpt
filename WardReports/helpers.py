@@ -98,6 +98,7 @@ def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if
 Dear Ward {ward_number},
 
 Today is week {weeks_of_census()} of the Census Response Period. As of today, {int(counted_per_ward(ward_agg, ward_number)['Num_Counted']):,} households in your ward have responded to the 2020 Census. This means there are about **{int(counted_per_ward(ward_agg, ward_number)['Num_Uncounted']):,} households which have not responded**!
+
 Your ward has a self-response rate of {counted_per_ward(ward_agg,ward_number)['Perc_Counted']}%. Overall, {total_reported_perc}% of all Chicagoans have responded to the Census, and Chicago’s target is a 75% self-response rate. There are about {int(households_left):,} households left in Chicago which have not responded.
 
 Here are some additional facts about how Chicago wards are doing:
@@ -128,24 +129,32 @@ Here are some additional facts about how Chicago wards are doing:
 '''
 Remember, for every additional person counted in Chicago, we stand to gain approximately $1,400 that could be used towards parks, schools, and infrastructure!
 
+''' """
+    if if_platform_user == 'Yes':
+        email_body_platform = """ +
+'''
+Dig into the data at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)'''
+
+"""
+
+    email_body4=f""" +
+'''
+
 *Target rates are based on each ward’s 2010 Census response rate and a city overall target of 75% response.
 
 '''
 """
 
-    email_body4 = f""" +
+    email_body5 = f""" +
 ''' Find your custom ward report [here]({get_ward_report_url(ward_number)}).'''
 """
 
-    if if_platform_user == 'Yes':
-        email_body5 = """ +
-''' Dig into the data at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)'''
-"""
+
 
     try:
-        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3 + email_body5
+        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3 + email_body_platform + email_body4
     except:
-        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3
+        email_body = email_body1 + best_str + email_body2 + improved_str + email_body3 + email_body4
 
     return email_body
 
