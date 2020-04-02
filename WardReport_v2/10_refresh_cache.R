@@ -65,15 +65,18 @@ htc[MailReturnRateCen2010 == 99999, MailReturnRateCen2010 := NA]
 table(is.na(match(htc$GEOIDtxt, to2020$TRACT_prev)))
 htc[ , TRACT_2020 := to2020[match(htc$GEOIDtxt, TRACT_prev), TRACT_2020]]
 
-htc_current_resp <- htc[match(resp_current$GEOID, htc$TRACT_2020)]
-
-## Based on total household / 2020 tracts
-ssum(resp_current[ , CRRALL] * htc_current_resp$TotHH) / ssum(htc_current_resp$TotHH)
-ssum(resp_current[ , DRRALL] * htc_current_resp$TotHH) / ssum(htc_current_resp$TotHH)
-
-## Cook County by itself
-url <- "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=county:031&in=state:17"
-census_getter(url)
+if(FALSE){
+  htc_current_resp <- htc[match(resp_current$GEOID, htc$TRACT_2020)]
+  
+  ## Based on total household / 2020 tracts
+  ssum(resp_current[ , CRRALL] * htc_current_resp$TotHH) / ssum(htc_current_resp$TotHH)
+  ssum(resp_current[ , DRRALL] * htc_current_resp$TotHH) / ssum(htc_current_resp$TotHH)
+  
+  ## Cook County by itself
+  url <- "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=county:031&in=state:17"
+  census_getter(url)
+  census_getter_cook()
+}
 
 ##------------------------------------------------------------------------------
 ## Civis data
@@ -122,7 +125,7 @@ civis_ward_table <- read_civis_query("select * from cic.ward_visualization_table
 
 ## Daily visualization rates
 civis_daily_rates <- read_civis_query("select * from cic.ward_daily_rates_2020")
-str(civis_daily_rates)
+# str(civis_daily_rates)
 civis_daily_rates <- rbindlist(list(civis_daily_rates,
                                     data.table(ward=1:50, response_date = "2020-03-15", response_rate=0)),
                                use.names = TRUE)
