@@ -102,6 +102,12 @@ cols_muted <- diverging_hcl(n = 7, h = c(340, 128), c = c(60, 80),
                             l = c(30, 97), power = c(0.8, 1.5))
 cur_pal <- cols_muted
 cur_pal <- c(cur_pal, cur_pal[length(cur_pal)], cur_pal[length(cur_pal)])
+cur_pal <- c("#754C17", "#B96B34", "#F29946", "#E0C245", 
+             # "#99DFF1",
+             "#3BB8E2", "#7999B7", 
+             "#A18EB9",
+             "#694D87", "#3D2E4E")
+
 
 ## City wide response
 city_target_resp <- 75
@@ -150,10 +156,10 @@ ward_labels <-
                         paste0("Households in tract: ",
                                prettyNum(TotHH, big.mark=",")),
                         paste0("Households in ward: ",
-                               prettyNum(TotHH*households_ward/households_tract, 
+                               prettyNum(round(TotHH*households_ward/households_tract), 
                                          big.mark=",")),
-                        paste0("2010 mail return rate: ", mail_return_rate_cen_2010, "%"),
-                        paste0("Census predicted 2020 response:", 100-low_response_score, "%"),
+                        paste0("Response rate 2010 (mail): ", mail_return_rate_cen_2010, "%"),
+                        paste0("Predicted 2020 response rate:", 100-low_response_score, "%"),
                         paste0("Total population 2010:", tot_population_cen_2010),
                         paste0("Black population 2010:", nh_blk_alone_acs_13_17),
                         paste0("Hisp. population 2010:", hispanic_acs_13_17),
@@ -235,76 +241,77 @@ Row {data-height=400}
 
 ```{r}
 # # output$daily_performance <- renderPlotly({
-# fig <- plot_ly(data = civis_daily_rates[!ward==cur_ward], 
-#                x = ~response_date, y = ~response_rate, 
-#                # color = ~ward,
-#                color = I("grey80"), name = "other wards",
-#                type = "scatter", mode="lines")
-# fig <- layout(fig,
-#               title = paste0("Cumulative Daily Response Rate\n Ward", cur_ward),
-#               xaxis = list(title = "Household % Responding"),
-#               yaxis = list (title = ""))
-# fig <- civis_daily_rates[ward==cur_ward, 
-#                          add_lines(fig, x=response_date, y=response_rate,
-#                                    name = paste("Ward", cur_ward),
-#                                    color = I("blue"))]
-# fig <- fig %>%
-#   layout(shapes = list(plotly_vline("2020-04-30", dash = "dash"), 
-#                        plotly_hline(ward_target_resp, dash = "dot", color = "green"),
-#                        plotly_hline(100, dash = "solid")),
-#          margin = list(t=80))
-#          # default margins:
-#          # margin = list(l = 80, r = 80, b = 80, t = 100, pad = 0)
-# fig <- add_text(fig, 
-#                 x=as.IDate("2020-03-20"), 
-#                 y = ward_target_resp + 5,
-#                 text = "Goal response rate", color = I("gray20"), 
-#                 showlegend = FALSE)
-# fig
+fig <- plot_ly(data = civis_daily_rates[!ward==cur_ward],
+               x = ~response_date, y = ~response_rate,
+               # color = ~ward,
+               color = I("grey80"), name = "other wards",
+               type = "scatter", mode="lines")
+fig <- layout(fig,
+              title = paste0("Cumulative Daily Response Rate\n Ward", cur_ward),
+              xaxis = list(title = "Household % Responding"),
+              yaxis = list (title = ""))
+fig <- civis_daily_rates[ward==cur_ward,
+                         add_lines(fig, x=response_date, y=response_rate,
+                                   name = paste("Ward", cur_ward),
+                                   color = I("blue"))]
+fig <- fig %>%
+  layout(shapes = list(plotly_vline("2020-04-30", dash = "dash"),
+                       plotly_hline(ward_target_resp, dash = "dot", color = "green"),
+                       plotly_hline(100, dash = "solid")),
+         margin = list(t=80))
+         # default margins:
+         # margin = list(l = 80, r = 80, b = 80, t = 100, pad = 0)
+fig <- add_text(fig,
+                x=as.IDate("2020-03-20"),
+                y = ward_target_resp + 5,
+                text = paste0("Goal for Ward ", cur_ward, " is ", ward_target_resp, "%" ),
+                color = I("gray20"),
+                showlegend = FALSE)
+fig
 
 # })
 # plotlyOutput("daily_performance", width = "50%")
 
-p <- ggplot() +
-  geom_errorbar(data = civis_daily_rates[i = TRUE,
-                                         j = list(max = max(response_rate),
-                                                  min = min(response_rate)),
-                                         by = response_date],
-                aes(x = response_date, 
-                    ymin = min, 
-                    ymax = max),
-                width = 1,
-                colour = "gray70")+
-  geom_line(data = civis_daily_rates[i = ward == cur_ward,
-                                     j = list(response_date = response_date,
-                                              response_rate,
-                                              ward = paste("Ward ", ward))], 
-            aes(x = response_date, y = response_rate, colour = ward),
-            size = 2)+
-  xlim(c(as.IDate("2020-03-15"), as.IDate("2020-04-30"))) +
-  ylim(c(0, 110)) +
-  geom_hline(yintercept=100, linetype="dashed", color = "black") +
-  geom_hline(yintercept=ward_target_resp, linetype="dashed", color = "darkgreen") +
-  geom_segment(aes(x = as.IDate("2020-04-30"), y = 15, 
-                   xend = as.IDate("2020-04-30"), yend = 100)) +
-  annotate(geom = "text", x = as.IDate("2020-04-29"), y = 50,
-           label = "April 30", color = "black", angle = 90) +
-  annotate(geom = "text", x = as.IDate("2020-03-15"), y = ward_target_resp+5,
-           label = paste0("Goal for Ward ", cur_ward, " is ", ward_target_resp, "%" ),
-           color = "darkgreen", angle = 0, hjust = "left") +
-  annotate(geom = "text", x = as.IDate("2020-03-15"), y = 100+5,
-           label = paste0("100%"), 
-           color = "black", angle = 0, hjust = "left") +
-  ggtitle("Cumulative Daily Household Response Rate", 
-          subtitle=paste0("Ward ", cur_ward)) +
-  xlab("") + ylab("Household % Responding")+
-  theme_bw() +
-  theme(legend.text = element_text(size=15, face="bold"),
-        legend.justification=c(1,0),
-        legend.position=c(1,0),
-        legend.title = element_blank())
-# ggplotly(p)
-p
+# p <- ggplot() +
+#   geom_errorbar(data = civis_daily_rates[i = TRUE,
+#                                          j = list(max = max(response_rate),
+#                                                   min = min(response_rate)),
+#                                          by = response_date],
+#                 aes(x = response_date, 
+#                     ymin = min, 
+#                     ymax = max),
+#                 width = 1,
+#                 colour = "gray70")+
+#   geom_line(data = civis_daily_rates[i = ward == cur_ward,
+#                                      j = list(response_date = response_date,
+#                                               response_rate,
+#                                               ward = paste("Ward ", ward))], 
+#             aes(x = response_date, y = response_rate, colour = ward),
+#             size = 2)+
+#   xlim(c(as.IDate("2020-03-15"), as.IDate("2020-04-30"))) +
+#   ylim(c(0, 110)) +
+#   geom_hline(yintercept=100, linetype="dashed", color = "black") +
+#   geom_hline(yintercept=ward_target_resp, linetype="dashed", color = "darkgreen") +
+#   geom_segment(aes(x = as.IDate("2020-04-30"), y = 15, 
+#                    xend = as.IDate("2020-04-30"), yend = 100)) +
+#   annotate(geom = "text", x = as.IDate("2020-04-29"), y = 50,
+#            label = "April 30", color = "black", angle = 90) +
+#   annotate(geom = "text", x = as.IDate("2020-03-15"), y = ward_target_resp+5,
+#            label = paste0("Goal for Ward ", cur_ward, " is ", ward_target_resp, "%" ),
+#            color = "darkgreen", angle = 0, hjust = "left") +
+#   annotate(geom = "text", x = as.IDate("2020-03-15"), y = 100+5,
+#            label = paste0("100%"), 
+#            color = "black", angle = 0, hjust = "left") +
+#   ggtitle("Cumulative Daily Household Response Rate", 
+#           subtitle=paste0("Ward ", cur_ward)) +
+#   xlab("") + ylab("Household % Responding")+
+#   theme_bw() +
+#   theme(legend.text = element_text(size=15, face="bold"),
+#         legend.justification=c(1,0),
+#         legend.position=c(1,0),
+#         legend.title = element_blank())
+# # ggplotly(p)
+# p
 ```
 
     
@@ -315,17 +322,25 @@ Row {data-height=600}
 
 ```{r}
 vec <- civis_ward_table$current_response_rate
-# pal <- colorNumeric(palette = cur_pal, domain = vec)K
-pal <- colorNumeric(palette = cur_pal, domain = c(0,100))
+paldomain <- c(1,100)
+# paldomain <- vec
+pal <- colorNumeric(palette = cur_pal, domain = paldomain)
+labs <- shp_ward_centroids
+labs$ward <- as.character(shp_wards$ward)
 leaflet() %>%
   addProviderTiles("Stamen.TonerHybrid") %>%
   addPolygons(data = shp_wards,
               fillColor = ~ pal(vec),
               fillOpacity = 0.8, weight = 0.5,
               label = ~civis_ward_table$LABEL) %>%
+  addLabelOnlyMarkers(data = labs, ~labs$x, ~labs$y, label = ~as.character(labs$ward),
+                      labelOptions = labelOptions(noHide = TRUE,
+                                                  direction = "center",
+                                                  offset = c(0, 0), opacity = 1, 
+                                                  textsize = "12px", textOnly = TRUE, 
+                                                  style = list("font-style" = "bold"))) %>%
   addLegend(pal = pal,
-            # values = vec,
-            values = c(0,100),
+            values = paldomain,
             title = "% Resp Rate",
             position = "bottomright")
 
@@ -351,6 +366,10 @@ leaflet() %>%
 vec <- resp_cur_ward$CRRALL
 # pal <- colorNumeric(palette = cols_muted, domain = vec)
 pal <- colorNumeric(palette = cur_pal, domain = c(0,100))
+labs <- shp_tracts_2020_centroids[match(shp_ward_tract$GEOID, shp_tracts_2020$GEOID), ]
+labs$tract <- shp_tracts_2020$TRACT[match(shp_ward_tract$GEOID, shp_tracts_2020$GEOID)]
+labs$tract <- as.character(labs$tract)
+
 leaflet() %>%
   addProviderTiles("Stamen.TonerHybrid") %>% 
   addPolygons(data = shp_ward_tract,
@@ -360,6 +379,12 @@ leaflet() %>%
               label = ~ ward_labels$LABEL) %>%
   addPolygons(data = shp_ward, fill = FALSE, color = "yellow", weight = 5, opacity = .75) %>%
   addPolygons(data = shp_ward, fill = FALSE, color = "blue", weight = 2, opacity = 1) %>%
+  addLabelOnlyMarkers(data = labs, ~labs$x, ~labs$y, label = ~as.character(labs$tract),
+                      labelOptions = labelOptions(noHide = TRUE,
+                                                  direction = "center",
+                                                  offset = c(0, 0), opacity = 1, 
+                                                  textsize = "12px", textOnly = TRUE, 
+                                                  style = list("font-style" = "bold"))) %>%
   addLegend(pal = pal,
             values = c(0,100),
             title = "% Resp Rate",

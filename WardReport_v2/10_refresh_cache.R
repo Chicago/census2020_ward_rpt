@@ -28,6 +28,13 @@ shp_wards <- readOGR("data_maps/wards.geojson", stringsAsFactors = FALSE)
 
 shp_tracts_2020$GEOID <- substr(shp_tracts_2020$GEO_ID, 10, 20)
 
+shp_tracts_2020_centroids <- centroid(shp_tracts_2020,
+                                      iterations = 150,
+                                      initial_width_step = .01)
+shp_ward_centroids <- centroid(shp_wards,
+                               iterations = 150,
+                               initial_width_step = .01)
+
 ##------------------------------------------------------------------------------
 ## Crosswalk based on replica data
 ##------------------------------------------------------------------------------
