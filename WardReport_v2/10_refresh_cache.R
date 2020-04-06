@@ -128,6 +128,9 @@ civis_pdb[ , tract := sprintf("%06i", as.integer(tract))]
 ##------------------------------------------------------------------------------
 
 ## Ward table
+civis_tract_table <- read_civis_query("select * from cic.visualization_table")
+
+## Ward table
 civis_ward_table <- read_civis_query("select * from cic.ward_visualization_table")
 
 ## Daily visualization rates
