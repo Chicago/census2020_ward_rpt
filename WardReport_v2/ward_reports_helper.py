@@ -47,7 +47,7 @@ Chicago Census Team
 
 
 #Create function that defines the "source script" of the new script that get generated (sends to ward emails)
-def create_source_script(ward_email_data, ward_number, report_date):
+def create_source_script(ward_email_data, ward_number, report_date, folder_name):
     source_str = f"""import os \n
 import civis \n
 from datetime import date \n
