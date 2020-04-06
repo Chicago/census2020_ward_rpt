@@ -408,65 +408,67 @@ Row {data-height=650}
 ##------------------------------------------------------------------------------
 # civis_pdb[match(tracts_in_ward, tract)]
 # colnames(civis_pdb)
+r <- function(x) round(x, 2)
 dt2 <- resp_cur_ward[i = TRUE,
-                     j = list(low_response_score, tot_population_cen_2010, nh_blk_alone_acs_13_17, 
-                              hispanic_acs_13_17, tot_housing_units_cen_2010, eng_vw_acs_13_17,
-                              HH_SingleParent), 
+                     j = list(low_response_score = round(low_response_score, 0), 
+                              tot_population_cen_2010, 
+                              nh_blk_alone_acs_13_17, 
+                              hispanic_acs_13_17, 
+                              tot_housing_units_cen_2010, 
+                              eng_vw_acs_13_17,
+                              HH_SingleParent,
+                              perc_LEP = r(eng_vw_acs_13_17 / tot_housing_units_cen_2010),
+                              perc_SP = r(HH_SingleParent / tot_housing_units_cen_2010)), 
                      by = list(TRACT)]
-
-#add in percentages for specific columns
-dt2[, c("perc_LEP", "perc_SP"):=list((eng_vw_acs_13_17/tot_housing_units_cen_2010*100), 
-                                     (HH_SingleParent/tot_housing_units_cen_2010*100)), ]
-
-#use the package Reactable to make the table fancy. 
-#This requires creating a function for coloring purposes
-YlOrRd <- function(x) rgb(colorRamp(c("#fff7ba", "#fee28a", "#fec05b", "#fd923e", "#fc502a", 
-                                      "#df171c", "#b00026"))(x), 
-                          maxColorValue = 255)
+dt2 <- merge(resp_cur_ward[ , list(CRRALL=r(CRRALL/100), TRACT)], dt2, "TRACT")
+now <- as.POSIXct(max(resp_current$RESP_DATE, na.rm=TRUE))
+now <- paste0(format(now, "%b"), " ", gsub("^0","",format(now, "%d")))
 
 ##------------------------------------------------------------------------------
 ## Reactable table
 ##------------------------------------------------------------------------------
-
-stylefn <- function(value) {
-  if (!is.numeric(value))
-    return(min(civis_pdb$low_response_score,
-               na.rm=TRUE))
-  normalized <- (value -  min(civis_pdb$low_response_score, na.rm=TRUE)) /
-    (max(civis_pdb$low_response_score, na.rm=TRUE) -
-       min(civis_pdb$low_response_score, na.rm=TRUE))
-  color <- ifelse(is.na(normalized),
-                  "cyan",
-                  YlOrRd(normalized))
-  list(background = color)
+stylefn <- function(x){
+  col <- colorNumeric(palette = cur_pal, domain = c(0,1))(x)
+  ret <- list(background = col)
+  return(ret)
 }
 rtable <- reactable(dt2, 
                     defaultColDef = colDef(align = "center",
                                            maxWidth = 70,
-                                           headerStyle = list(background = "#f7f7f8")),
+                                           headerStyle = list(background = "#f7f7f8"),
+                                           format = colFormat(separators = T)),
                     columns = list (TRACT = colDef(name = "Census Tract"),
-                                    low_response_score = colDef(name = "Low Response Score", 
-                                                                defaultSortOrder = "desc", 
-                                                                style = stylefn),
+                                    CRRALL = colDef(name = paste("2020 % Responded as of", now),
+                                                    defaultSortOrder = "asc",
+                                                    style = stylefn,
+                                                    format = colFormat(percent = T),
+                                                    width = 110),
+                                    low_response_score = colDef(name = "Low Resp. Score"),
                                     tot_population_cen_2010 = colDef(name = "Total"),
                                     nh_blk_alone_acs_13_17 = colDef(name = "Black"), 
                                     hispanic_acs_13_17 = colDef(name = "Hisp."),
                                     tot_housing_units_cen_2010 = colDef(name = "Total"),
-                                    eng_vw_acs_13_17 = colDef(name = "Limited English Proficiency (LEP)"),
-                                    perc_LEP = colDef(name = "% LEP", format = colFormat(digits = 2)),
+                                    eng_vw_acs_13_17 = colDef(name = "Limited English Proficiency (LEP)",
+                                                              width = 95),
+                                    perc_LEP = colDef(name = "% LEP",
+                                                    format = colFormat(percent = T)),
                                     HH_SingleParent = colDef(name = "Single Parent"),
-                                    perc_SP = colDef(name = "% Single Parent", 
-                                                     format = colFormat(digits = 2))
+                                    perc_SP = colDef(name = "% Single Parent",
+                                                     format = colFormat(percent = TRUE))
                     ), 
                     columnGroups = list(colGroup(name = "Population", 
-                                                 columns = c("tot_population_cen_2010", "nh_blk_alone_acs_13_17",
+                                                 columns = c("tot_population_cen_2010",
+                                                             "nh_blk_alone_acs_13_17",
                                                              "hispanic_acs_13_17")),
                                         colGroup(name = "Households", 
                                                  columns = c("tot_housing_units_cen_2010",
-                                                             "eng_vw_acs_13_17", 
+                                                             "eng_vw_acs_13_17",
                                                              "perc_LEP", "HH_SingleParent",
                                                              "perc_SP"))),
-                    bordered = TRUE, resizable = TRUE, defaultSorted = "low_response_score")
+                    defaultPageSize = 25,
+                    bordered = TRUE,
+                    resizable = TRUE,
+                    defaultSorted = "CRRALL")
 rtable
 ```
 
