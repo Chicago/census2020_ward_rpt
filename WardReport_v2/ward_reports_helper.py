@@ -20,7 +20,7 @@ def create_email_body(ward_number, report_date):
 
     email_body = f"""
     '''
-![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal.png)
+![City of Chicago Logo](https://design.chicago.gov/assets/img/logo/LOGO-CHICAGO-horizontal.png)
 
 
 Dear Ward {ward_number},
