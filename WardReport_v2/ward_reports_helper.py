@@ -26,6 +26,7 @@ def create_email_body(ward_number, report_date):
 Dear Ward {ward_number},
 
 Please find the link for your customized weekly Census Summary Snapshot, which contains:  
+
  - Daily response plot with goal
  - Citywide ward map
  - Detailed ward map with tract level data
