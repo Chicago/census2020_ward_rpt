@@ -177,7 +177,7 @@ ward_labels <-
 Row {data-height=120}
 -------------------------------------
 
-### City Total Gauge
+### City Response Rate
 ```{r}
 gauge(value = city_cur_resp,
       label = "City",
@@ -189,7 +189,7 @@ gauge(value = city_cur_resp,
                    danger = c(0, city_target_resp-20)))
 ```
 
-### Ward Total Gauge
+### Ward Response Rate
 ```{r}
 gauge(value = ward_cur_resp,
       label = "Ward",
