@@ -21,15 +21,17 @@ def create_email_body(ward_number, report_date):
     email_body = f"""
     '''
 ![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal.png)
+
+
 Dear Ward {ward_number},
 
-Please find the link for your customized weekly Census Summary Snapshot, which contains:
+Please find the link for your customized weekly Census Summary Snapshot, which contains:  
  - Daily response plot with goal
  - Citywide ward map
  - Detailed ward map with tract level data
  - Census tract details for your ward
 
-[generate_report_link(ward_number,report_date)]({generate_report_link(ward_number,report_date)})
+[{generate_report_link(ward_number,report_date)}]({generate_report_link(ward_number,report_date)})
 
 Data is based on the Civis Intelligence Center.  You can access the full intelligence here: [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)
 
