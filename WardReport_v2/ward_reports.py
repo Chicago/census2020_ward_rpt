@@ -7,7 +7,7 @@ import math
 import civis
 import os
 
-from monday_helpers import *
+from ward_reports_helper import *
 
 client = civis.APIClient()
 
