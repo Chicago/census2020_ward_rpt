@@ -99,18 +99,11 @@ resp_cur_ward <- resp_cur_ward[match(shp_ward_tract@data$TRACT, resp_cur_ward$TR
 resp_current <- resp_current[match(shp_tracts_2020$TRACT, TRACT)]
 
 ## Map color definitions
-cols_bright <- diverging_hcl(n = 7, h = c(360, 138), c = c(144, 42), 
-                             l = c(67, 82), power = c(0.45, 1.1))
-cols_muted <- diverging_hcl(n = 7, h = c(340, 128), c = c(60, 80), 
-                            l = c(30, 97), power = c(0.8, 1.5))
-cur_pal <- cols_muted
-cur_pal <- c(cur_pal, cur_pal[length(cur_pal)], cur_pal[length(cur_pal)])
 cur_pal <- c("#754C17", "#B96B34", "#F29946", "#E0C245", 
              # "#99DFF1",
              "#3BB8E2", "#7999B7", 
              "#A18EB9",
              "#694D87", "#3D2E4E")
-
 
 ## City wide response
 city_target_resp <- 75
@@ -123,12 +116,15 @@ city_target_resp_civis <- civis_ward_table[
 city_cur_resp <- round(city_cur_resp, 1)
 
 ## Ward specific respopnse numbers
-ward_target_resp <- civis_ward_table[cur_ward, adjusted_civis_2020_target]
-ward_cur_resp <- civis_ward_table[cur_ward, current_response_rate]
-ward_target_resp_civis <- civis_ward_table[cur_ward, civis_2020_target]
-ward_ranking_adj <- civis_ward_table[ , list(ward,
-                                             rank = rank(current_response_rate/civis_2020_target))][
-                                               ward == cur_ward, rank]
+ward_target_resp <- civis_ward_table[match(cur_ward, ward), adjusted_civis_2020_target]
+ward_cur_resp <- civis_ward_table[match(cur_ward, ward), current_response_rate]
+ward_target_resp_civis <- civis_ward_table[match(cur_ward, ward), civis_2020_target]
+ward_ranking_table_adj <- civis_ward_table[i = TRUE,
+                                           list(ward,
+                                                current_response_rate,
+                                                rank = 1 +.N - rank(current_response_rate /
+                                                                      civis_2020_target))]
+ward_ranking_adj <- ward_ranking_table_adj[ward == cur_ward, rank]
 
 ## Household totals for value boxes
 ward_hh_tot <- resp_cur_ward[ , sum(households_ward)]
