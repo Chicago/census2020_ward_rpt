@@ -122,8 +122,7 @@ ward_target_resp_civis <- civis_ward_table[match(cur_ward, ward), civis_2020_tar
 ward_ranking_table_adj <- civis_ward_table[i = TRUE,
                                            list(ward,
                                                 current_response_rate,
-                                                rank = 1 +.N - rank(current_response_rate /
-                                                                      civis_2020_target))]
+                                                rank = 1 +.N - rank(percent_to_target))]
 ward_ranking_adj <- ward_ranking_table_adj[ward == cur_ward, rank]
 
 ## Household totals for value boxes
