@@ -74,13 +74,16 @@ def counted_per_ward(ward_agg, ward_number):
                    "Perc_to_Target": per_to_target}
     return counted_dict
 
-#Function to get url for the custom ward report
-def get_ward_report_url(ward_number):
-    url = 'https://placeholder_website.com/ward'+str(ward_number)
-    return url[:-1]
+#Function to generate links to Chicago Ward Reports
+def generate_report_link(ward_number, report_date, folder_name):
+    if ward_number < 10:
+        link = "http://webapps1.chicago.gov/censuswardreports/"+folder_name+"/Ward_0"+str(ward_number)+"_"+report_date+".html"
+    if ward_number >= 10:
+        link = "http://webapps1.chicago.gov/censuswardreports/"+folder_name+"/Ward_"+str(ward_number)+"_"+report_date+".html"
+    return link
 
 #Function to create email_body in markdown
-def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user):
+def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name):
 
     total_reported_perc = ward_stats["total_reported_perc"]
     households_left = ward_stats["households_left"]
@@ -129,13 +132,19 @@ Here are some additional facts about how Chicago wards are doing:
 '''
 Remember, for every additional person counted in Chicago, we stand to gain approximately $1,400 that could be used towards parks, schools, and infrastructure!
 
+Find out more in your personalized ward report [here]({generate_report_link(ward_number,report_date,folder_name)}).
 ''' """
     if if_platform_user == 'Yes':
         email_body_platform = """ +
-'''
-Dig into the data at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)'''
+'''Dig into the data at the [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true).
+(Please open reports in Chrome or Firefox internet browser.)'''
 
 """
+    else:
+        email_body_platform = """ +
+'''(Please open report in Chrome or Firefox internet browser.)'''
+
+        """
 
     email_body4=f""" +
 '''
@@ -143,10 +152,6 @@ Dig into the data at the [Census Intelligence Center](https://platform.civisanal
 *Target rates are based on each ward’s 2010 Census response rate and a city overall target of 75% response.
 
 '''
-"""
-
-    email_body5 = f""" +
-''' Find your custom ward report [here]({get_ward_report_url(ward_number)}).'''
 """
 
 
@@ -160,7 +165,7 @@ Dig into the data at the [Census Intelligence Center](https://platform.civisanal
 
 
 #Create function that defines the "source script" of the new script that get generated (sends to ward emails)
-def create_source_script(ward_number, ward_email_data, ward_agg, ward_weekly_rate_df, ward_stats):
+def create_source_script(ward_number, ward_email, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name):
     source_str = f"""import os \n
 import civis \n
 from datetime import date \n
@@ -169,14 +174,14 @@ client = civis.APIClient()
 
 client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
         'success_email_subject' : 'Weekly Census Report: Ward {ward_number}, {dt.date.today().strftime("%m/%d/%Y")}',
-        'success_email_body' : {create_email_body(ward_number,ward_agg, ward_weekly_rate_df, ward_stats, 'Yes')},
-        'success_email_addresses' : ['{ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0]}']}})
+        'success_email_body' : {create_email_body(ward_number,ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name)},
+        'success_email_addresses' : ['{ward_email}']}})
         """
     return source_str
 
 
 #Define function that creates new script
-def create_new_email_script(client, ward_number, ward_email_data, ward_agg, ward_weekly_rate_df, ward_stats):
+def create_new_email_script(client, ward_number, ward_email, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name):
     new_script = client.scripts.post_python3(name = 'Ward_'+str(ward_number) + '_Report',
-                                source = create_source_script(ward_number,ward_email_data, ward_agg, ward_weekly_rate_df, ward_stats))
+                                source = create_source_script(ward_number,ward_email, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name))
     return new_script
