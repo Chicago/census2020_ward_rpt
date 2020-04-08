@@ -182,6 +182,6 @@ client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
 
 #Define function that creates new script
 def create_new_email_script(client, ward_number, ward_email, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name):
-    new_script = client.scripts.post_python3(name = 'Ward_'+str(ward_number) + '_Report_Test',
+    new_script = client.scripts.post_python3(name = 'Ward_'+str(ward_number) + '_Report',
                                 source = create_source_script(ward_number,ward_email, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name))
     return new_script

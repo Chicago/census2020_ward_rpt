@@ -62,7 +62,7 @@ def main():
         platform_user = ward_email_data.iloc[i]['platform_user']
         ward_email = ward_email_data.iloc[i]['Ward_Office_Email']
         temp_job_id = create_new_email_script(client, ward_number, ward_email, ward_df, ward_weekly_rate_df, stats, platform_user, report_date, folder_name)['id']
-        #run_job_report = client.scripts.post_python3_runs(temp_job_id)
+        run_job_report = client.scripts.post_python3_runs(temp_job_id)
         print(ward_number, ward_email, platform_user, temp_job_id)
 
 if __name__ == '__main__':
