@@ -18,7 +18,7 @@ def generate_report_link(ward_number, report_date, folder_name):
 #Function to create email_body in markdown
 def create_email_body(ward_number, report_date, folder_name):
 
-    email_body = f"""
+    email_body1 = f"""
     '''
 ![City of Chicago Logo](https://raw.githubusercontent.com/Chicago/census2020_ward_rpt/civis_SR_branch/WardReports/LOGO-CHICAGO-horizontal.png)
 
@@ -34,7 +34,13 @@ Please find the link for your customized weekly Census Summary Snapshot, which c
 
 [{generate_report_link(ward_number,report_date,folder_name)}]({generate_report_link(ward_number,report_date,folder_name)})
 
-Data is based on the Civis Intelligence Center.  You can access the full intelligence here: [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)
+Data is based on the Civis Intelligence Center. '''"""
+
+    if if_platform_user=='Yes':
+        email_body2 = """'''You can access the full intelligence here: [Census Intelligence Center](https://platform.civisanalytics.com/spa/#/reports/services/77574?fullscreen=true)
+''' """
+
+    email_body3 = """'''
 
 Thank you!
 
@@ -42,6 +48,10 @@ Chicago Census Team
 
 '''
 """
+    try:
+        email_body = email_body1 + email_body2 + email_body3
+    except:
+        email_body = email_body1 + email_body3
 
     return email_body
 
