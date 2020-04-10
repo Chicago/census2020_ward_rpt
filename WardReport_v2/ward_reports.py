@@ -26,8 +26,10 @@ def main():
                    columns =['WARD', 'Ward_Office_Email', 'platform_user'])
 
 
-    report_date = "2020-04-05"
-    folder_name = "2020-04-06"
+    #report_date = "2020-04-05"
+    #folder_name = "2020-04-06"
+    report_date = get_report_dates()['Report Date']
+    folder_name = get_report_dates()['Folder Name']
 
     ##################################################################
     #Loop that calls function that makes new script per ward
