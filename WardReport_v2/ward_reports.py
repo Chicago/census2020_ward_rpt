@@ -23,7 +23,7 @@ def main():
     emails = ['srao@civisanalytics.com' for i in range(50)]
     platform_user = ['Yes' for i in range(25)] + ['No' for i in range(25)]
     ward_email_data = pd.DataFrame(list(zip(wards, emails, platform_user)),
-                   columns =['WARD', 'Ward_Office_Email', 'Platform User'])
+                   columns =['WARD', 'Ward_Office_Email', 'platform_user'])
 
 
     report_date = "2020-04-05"
@@ -31,13 +31,13 @@ def main():
 
     ##################################################################
     #Loop that calls function that makes new script per ward
-    for ward_number in range(1,51):
+    for i in range(ward_email_data.shape[0]):
         ward_number = ward_email_data.iloc[i]['WARD']
         platform_user = ward_email_data.iloc[i]['platform_user']
         ward_email = ward_email_data.iloc[i]['Ward_Office_Email']
         temp_job_id = create_new_email_script(client, ward_email_data,ward_number,ward_email, report_date,folder_name)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
-        print(ward_email_data[ward_email_data['WARD']==ward_number]['Ward_Office_Email'].values[0])
+        print(ward_number, ward_email, platform_user, temp_job_id)
 
 if __name__ == '__main__':
     main()
