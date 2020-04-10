@@ -52,8 +52,11 @@ def main():
                     "most_improved_ward" : most_improved_ward}
 
     #dates for personalized report url (needs to get put in a function)
-    report_date = "2020-04-05"
-    folder_name = "2020-04-06"
+    #report_date = "2020-04-05"
+    #folder_name = "2020-04-06"
+
+    report_date = get_dates_for_link()['Report Date']
+    folder_name = get_dates_for_link()['Folder Name']
 
     ##################################################################
     #Loop that calls function that makes new script per ward

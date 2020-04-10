@@ -82,6 +82,16 @@ def generate_report_link(ward_number, report_date, folder_name):
         link = "http://webapps1.chicago.gov/censuswardreports/"+folder_name+"/Ward_"+str(ward_number)+"_"+report_date+".html"
     return link
 
+def get_dates_for_link():
+    today = dt.date.today()
+    today_idx = today.weekday()
+    sunday = today - dt.timedelta(1 + today_idx)
+    monday = today - dt.timedelta(today_idx)
+    report_date = sunday.strftime('%Y-%m-%d')
+    folder_name = monday.strftime('%Y-%m-%d')
+    return {'Report Date':report_date,
+            'Folder Name': folder_name}
+
 #Function to create email_body in markdown
 def create_email_body(ward_number, ward_agg, ward_weekly_rate_df, ward_stats, if_platform_user, report_date, folder_name):
 
