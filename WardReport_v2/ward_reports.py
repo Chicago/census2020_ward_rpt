@@ -20,7 +20,7 @@ def main():
     """
     #Generate fake table that should be replaced with actual ward table later
     wards = list(range(1,51))
-    emails = ['srao@civisanalytics.com' for i in range(50)]
+    emails = ['Gene.Leynes@cityofchicago.org ' for i in range(50)]
     platform_user = ['Yes' for i in range(25)] + ['No' for i in range(25)]
     ward_email_data = pd.DataFrame(list(zip(wards, emails, platform_user)),
                    columns =['WARD', 'Ward_Office_Email', 'platform_user'])
@@ -31,7 +31,7 @@ def main():
 
     ##################################################################
     #Loop that calls function that makes new script per ward
-    for i in range(24,26):
+    for i in range(ward_email_data.shape[0]):
         ward_number = ward_email_data.iloc[i]['WARD']
         platform_user = ward_email_data.iloc[i]['platform_user']
         ward_email = ward_email_data.iloc[i]['Ward_Office_Email']
