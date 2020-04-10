@@ -16,7 +16,7 @@ def generate_report_link(ward_number, report_date, folder_name):
     return link
 
 #Function to create email_body in markdown
-def create_email_body(ward_number, report_date, folder_name):
+def create_email_body(ward_number, if_platform_user, report_date, folder_name):
 
     email_body1 = f"""
     '''
@@ -57,21 +57,21 @@ Chicago Census Team
 
 
 #Create function that defines the "source script" of the new script that get generated (sends to ward emails)
-def create_source_script( ward_number,ward_email, report_date, folder_name):
+def create_source_script( ward_number,ward_email, if_platform_user, report_date, folder_name):
     source_str = f"""import os \n
 import civis \n
 from datetime import date \n
 client = civis.APIClient()
 client.scripts.patch_python3(os.environ['CIVIS_JOB_ID'], notifications = {{
         'success_email_subject' : 'Ward Census Summary: Ward {ward_number}',
-        'success_email_body' : {create_email_body(ward_number, report_date,folder_name)},
+        'success_email_body' : {create_email_body(ward_number, if_platform_user, report_date,folder_name)},
         'success_email_addresses' : ['{ward_email}']}})
         """
     return source_str
 
 
 #Define function that creates new script
-def create_new_email_script(client,ward_email_data, ward_number, ward_email, report_date, folder_name):
+def create_new_email_script(client,ward_email_data, ward_number, if_platform_user, ward_email, report_date, folder_name):
     new_script = client.scripts.post_python3(name = 'City_Ward_'+str(ward_number) + '_Report',
-                                source = create_source_script( ward_number, ward_email, report_date, folder_name))
+                                source = create_source_script( ward_number, ward_email, if_platform_user, report_date, folder_name))
     return new_script

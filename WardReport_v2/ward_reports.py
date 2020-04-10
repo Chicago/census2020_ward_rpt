@@ -31,11 +31,11 @@ def main():
 
     ##################################################################
     #Loop that calls function that makes new script per ward
-    for i in range(ward_email_data.shape[0]):
+    for i in range(24,26):
         ward_number = ward_email_data.iloc[i]['WARD']
         platform_user = ward_email_data.iloc[i]['platform_user']
         ward_email = ward_email_data.iloc[i]['Ward_Office_Email']
-        temp_job_id = create_new_email_script(client, ward_email_data,ward_number,ward_email, report_date,folder_name)['id']
+        temp_job_id = create_new_email_script(client, ward_email_data,ward_number, platform_user,ward_email, report_date,folder_name)['id']
         run_job_report = client.scripts.post_python3_runs(temp_job_id)
         print(ward_number, ward_email, platform_user, temp_job_id)
 
