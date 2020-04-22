@@ -22,3 +22,4 @@ Second, to render the reports for each ward run `WardReport_v2/20_render_reports
 
 As a side note, the report could easily be made into a modular application in Shiny's reactive framework. 
 
+The final step is to email aldermanic offics on the distributon list mantained with the Civis platform.  This is accomplished though with `WardReport_v2\ward_reports.py`.  Within the Census Intelligence Center it is possible to run this script within an containerized docker environment, which automates the email distribution process. 
