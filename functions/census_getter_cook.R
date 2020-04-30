@@ -1,10 +1,10 @@
 
 
-census_getter_cook <- function(){
+census_getter_cook <- function(keyfile = "config/census_api_key.yaml"){
     # browser()
     require(data.table)
     require(httr)
-    censuskey <- yaml::read_yaml("config/census_api_key.yaml")$census_api_key
+    censuskey <- yaml::read_yaml(keyfile)$census_api_key
     
     ## All census tracts in Cook County by components
     baseurl <- "https://api.census.gov/data/2020/dec/responserate?"
