@@ -239,13 +239,17 @@ Row {data-height=400}
 
 ```{r}
 # # output$daily_performance <- renderPlotly({
-fig <- plot_ly(data = civis_daily_rates[!ward==cur_ward],
+fig <- plot_ly(data = civis_daily_rates[!ward==cur_ward,
+                                        list(response_date,
+                                             response_rate = round(response_rate,1))],
                x = ~response_date, y = ~response_rate,
+               showlegend = FALSE,
                # color = ~ward,
-               color = I("grey80"), name = "other wards",
+               color = I("grey80"), 
+               name = paste("Ward", civis_daily_rates[!ward==cur_ward]$ward),
                type = "scatter", mode="lines")
 fig <- layout(fig,
-              title = paste0("Cumulative Daily Response Rate\n Ward", cur_ward),
+              title = paste0("Cumulative Daily Response Rate\n Ward ", cur_ward),
               xaxis = list(title = "Household % Responding"),
               yaxis = list (title = ""))
 fig <- civis_daily_rates[ward==cur_ward,
