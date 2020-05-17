@@ -13,7 +13,7 @@ client = civis.APIClient()
 
 def main():
     #actual ward table import to be used once testing is complete
-    # """
+    #"""
     ward_email_data = civis.io.read_civis(database='City of Chicago',
                                           table = 'cic.weekly_email_list',
                                           use_pandas = True)
