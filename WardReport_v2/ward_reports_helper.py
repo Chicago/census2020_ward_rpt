@@ -21,8 +21,8 @@ def get_dates_for_link():
     today_idx = today.weekday()
     sunday = today - dt.timedelta(1 + today_idx)
     monday = today - dt.timedelta(today_idx)
-    report_date = monday.strftime('%Y-%m-%d')
-    folder_name = monday.strftime('%Y-%m-%d')
+    report_date = sunday.strftime('%Y-%m-%d')
+    folder_name = sunday.strftime('%Y-%m-%d')
     return {'Report Date':report_date,
             'Folder Name': folder_name}
 
