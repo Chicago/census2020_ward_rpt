@@ -11,10 +11,12 @@ for(i in 1:50){
   fname <- sprintf("WardReport_v2/output/report_%s/Ward_%02i_%s.html", 
                    today, as.integer(i), today)
   if(!file.exists(dirname(fname))) dir.create(dirname(fname))
-  rmarkdown::render(input = "WardReport_v2/WardReport.Rmd",
-                    output_dir = dirname(fname),
-                    output_file = basename(fname),
-                    quiet = TRUE)
+  if(!file.exists(fname)){
+    rmarkdown::render(input = "WardReport_v2/WardReport.Rmd",
+                      output_dir = dirname(fname),
+                      output_file = basename(fname),
+                      quiet = TRUE)
+  }
 }
 
 
