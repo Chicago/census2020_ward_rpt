@@ -61,6 +61,7 @@ def main():
     ##################################################################
     #Loop that calls function that makes new script per ward
     for i in range(ward_email_data.shape[0]):
+    #for i in range(26,27):
         ward_number = ward_email_data.iloc[i]['WARD']
         platform_user = ward_email_data.iloc[i]['platform_user']
         ward_email = ward_email_data.iloc[i]['Ward_Office_Email']
