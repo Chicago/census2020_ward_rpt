@@ -159,7 +159,7 @@ Find out more in your personalized ward report [here]({generate_report_link(ward
     email_body4=f""" +
 '''
 
-*Target rates are based on each ward’s 2010 Census response rate and a city overall target of 75% response.Percentages in this email are calculated by Civis, using the denominator of total occupied households from the American Community Survey 2013-2017 five year estimate. These percentages may differ slightly from the numbers reported by the Census Bureau. 
+*Target rates are based on each ward’s 2010 Census response rate and a city overall target of 75% response. Percentages in this email are calculated by Civis, using the denominator of total occupied households from the American Community Survey 2013-2017 five year estimate. These percentages may differ slightly from the numbers reported by the Census Bureau. 
 
 '''
 """
