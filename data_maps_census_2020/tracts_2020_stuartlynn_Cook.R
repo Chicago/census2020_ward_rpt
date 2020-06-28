@@ -30,7 +30,8 @@ sourceDir("functions/")
 ##==============================================================================
 
 shp_community <- readOGR("data_maps/community_areas.geojson", stringsAsFactors = FALSE)
-shp_il <- readOGR("data_maps/tracts_2020_stuartlynn_IL.geojson", stringsAsFactors = FALSE)
+shp_il <- readOGR("data_maps_census_2020/tracts_2020_stuartlynn_IL.geojson", 
+                  stringsAsFactors = FALSE)
 
 
 ##==============================================================================
@@ -64,9 +65,9 @@ summary(shp_cook)
 #                 fillColor = "black", weight = 1, fillOpacity = 1)
 
 
-# file.remove("data_maps/tracts_2020_stuartlynn_Cook.geojson")
+# file.remove("data_maps_census_2020/tracts_2020_stuartlynn_Cook.geojson")
 writeOGR(obj = shp_cook, 
-         dsn = "data_maps/tracts_2020_stuartlynn_Cook.geojson", 
+         dsn = "data_maps_census_2020/tracts_2020_stuartlynn_Cook.geojson", 
          layer = "tracts", 
          driver = "GeoJSON")
 
@@ -102,7 +103,7 @@ shp_chicago_wgs84_withdata <- SpatialPolygonsDataFrame(shp_chicago_wgs84,
 str(shp_chicago_wgs84_withdata@data)
 
 writeOGR(obj = shp_chicago_wgs84_withdata, 
-         dsn = "data_maps/tracts_2020_stuartlynn_Chicago.geojson", 
+         dsn = "data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson", 
          layer = "tracts", 
          driver = "GeoJSON")
 

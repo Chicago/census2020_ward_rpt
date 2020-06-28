@@ -30,7 +30,7 @@ sourceDir("functions/")
 
 shp_community <- readOGR("data_maps/community_areas.geojson", stringsAsFactors = FALSE)
 shp_tracts_prev <- readOGR("data_maps/tracts.geojson", stringsAsFactors = FALSE)
-shp_tracts_2020 <- readOGR("data_maps/tracts_2020_stuartlynn_Chicago.geojson", stringsAsFactors = FALSE)
+shp_tracts_2020 <- readOGR("data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson", stringsAsFactors = FALSE)
 shp_wards <- readOGR("data_maps/wards.geojson", stringsAsFactors = FALSE)
 
 str(shp_tracts_prev@data)
