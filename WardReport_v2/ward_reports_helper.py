@@ -43,6 +43,8 @@ Please find the link for your customized weekly Census Summary Snapshot, which c
  - Detailed ward map with tract level data
  - Census tract details for your ward
 
+Please note, Mayor Lightfoot will be announcing the results of the Census challenge later this week, thank you for your participation!
+
 [{generate_report_link(ward_number,report_date,folder_name)}]({generate_report_link(ward_number,report_date,folder_name)})
 
 Data is based on the Civis Intelligence Center. '''"""
