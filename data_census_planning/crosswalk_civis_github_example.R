@@ -26,6 +26,13 @@ cw <- fread("data_census_planning/crosswalk.csv")
 cw[ , census_tract := census_tract * 100]
 
 ##------------------------------------------------------------------------------
+## read tract shape file
+##------------------------------------------------------------------------------
+
+shp_tracts_2020 <- readOGR("data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson", stringsAsFactors = FALSE)
+shp_tracts_prev <- readOGR("data_maps/tracts_2019_chicago.geojson", stringsAsFactors = FALSE)
+
+##------------------------------------------------------------------------------
 ## Tables
 ##------------------------------------------------------------------------------
 table(ex_cook$tract %in% cw$census_tract)
@@ -38,11 +45,14 @@ head(cw$census_tract)
 ##------------------------------------------------------------------------------
 ## Map
 ##------------------------------------------------------------------------------
-plot(shp_tracts)
-plot(shp_tracts[!shp_tracts$TRACTCE %in% ex_all$tract, ], add=T, col="red")
+
+par(mfrow=c(1,2))
+
+plot(shp_tracts_2020)
+plot(shp_tracts_2020[!shp_tracts_2020$TRACT %in% ex_all$tract, ], add=T, col="red")
 
 
-plot(shp_tracts)
-plot(shp_tracts[!shp_tracts$TRACTCE %in% ex_cook$tract, ], add=T, col="red")
+plot(shp_tracts_prev)
+plot(shp_tracts_prev[!shp_tracts_prev$TRACTCE %in% ex_cook$tract, ], add=T, col="red")
 
 
