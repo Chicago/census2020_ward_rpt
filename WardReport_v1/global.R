@@ -13,9 +13,8 @@ source("functions/sourceDir.R")
 sourceDir("functions")
 
 ## Steps to read civis data
-## For key setup, see https://civisanalytics.github.io/civis-r/
 library(civis)
-source("config/setkey.R")
+Sys.setenv(CIVIS_API_KEY=yaml::read_yaml("config/civis_api_key.yaml")$key)
 
 ##------------------------------------------------------------------------------
 ## Load data

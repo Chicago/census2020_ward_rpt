@@ -10,12 +10,8 @@ library(data.table)
 ## For key setup, see https://civisanalytics.github.io/civis-r/
 library(civis)
 
-## Set the key using a file, or do it manually here:
-if(file.exists("config/setkey.R"){
-    source("config/setkey.R")
-} else {
-    Sys.setenv(CIVIS_API_KEY="INSERT YOUR KEY HERE")
-}
+## Set the Civis key
+Sys.setenv(CIVIS_API_KEY=yaml::read_yaml("config/civis_api_key.yaml")$key)
 
 
 ##------------------------------------------------------------------------------
