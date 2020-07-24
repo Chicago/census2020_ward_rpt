@@ -15,7 +15,9 @@ sourceDir("functions")
 ## Steps to read civis data
 ## For key setup, see https://civisanalytics.github.io/civis-r/
 library(civis)
-source("config/setkey.R")
+
+## set civis key 
+Sys.setenv(CIVIS_API_KEY=yaml::read_yaml("config/civis_api_key.yaml")$key)
 
 ##------------------------------------------------------------------------------
 ## Shape files
@@ -83,6 +85,7 @@ if(FALSE){
   url <- "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=county:031&in=state:17"
   census_getter(url)
   census_getter_cook()
+  rm(htc_current_resp, url)
 }
 
 ##------------------------------------------------------------------------------

@@ -7,6 +7,8 @@ output:
     social: menu
     source_code: embed
 # runtime: shiny
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r, include = FALSE}
