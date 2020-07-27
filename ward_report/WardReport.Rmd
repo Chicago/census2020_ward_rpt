@@ -44,8 +44,8 @@ sourceDir("functions")
 ##*********************
 ##*********************
 ##*********************
-load(max(list.files("WardReport_v2/cache", full.names = T)))
-cur_ward <- yaml::read_yaml("WardReport_v2/cur_ward.yaml")
+load(max(list.files("ward_report/cache", full.names = T)))
+cur_ward <- yaml::read_yaml("ward_report/cur_ward.yaml")
 cur_ward <- cur_ward$cur_ward
 ##*********************
 ##*********************
