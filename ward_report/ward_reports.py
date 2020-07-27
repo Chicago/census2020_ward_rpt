@@ -17,7 +17,7 @@ def main():
     ward_email_data = civis.io.read_civis(database='City of Chicago',
                                           table = 'cic.weekly_email_list',
                                           use_pandas = True)
-    # """
+    """
     #Generate fake table that should be replaced with actual ward table later
     wards = list(range(1,51))
     emails = ['Gene.Leynes@cityofchicago.org ' for i in range(50)]
