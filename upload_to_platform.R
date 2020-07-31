@@ -4,11 +4,12 @@
 ## Initialize
 ##------------------------------------------------------------------------------
 
-source("config/setkey.R")
-
 library(data.table)
 library(civis)
 library(openxlsx)
+
+## set civis key 
+Sys.setenv(CIVIS_API_KEY=yaml::read_yaml("config/civis_api_key.yaml")$key)
 
 ## SET SHAREPOINT FILE PATH
 sharepoint <- gsub("OneDrive - ","",Sys.getenv("OneDrive"))
