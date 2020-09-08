@@ -31,7 +31,11 @@ shpTracts <- readOGR("data_maps/tracts.geojson", stringsAsFactors = FALSE)
 # shp_wards <- readOGR("data_maps/wards.geojson", stringsAsFactors = FALSE)
 shpOutline <- gUnaryUnion(as(shpCommunity, "SpatialPolygons"))
 
-shpTracts <- readOGR("data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson")
+shpTracts <- readOGR("data_maps_census_2020/tracts_2020_stuartlynn_Cook.geojson", 
+                     stringsAsFactors = FALSE)
+shpTracts <- shpTracts[!is.na(shpTracts$zip), ]
+
+
 resp <- fread("data_daily_resp_cook/cook 2020-07-09.csv")
 
 library(tmap)
@@ -50,3 +54,4 @@ tm_shape(shpTracts[!is.na(shpTracts$`Response Rate`), ], is.master = TRUE) +
               id = "GEO_ID") +
   # tm_borders(shpOutline) +
   tm_view(view.legend.position = c("left", "bottom"), ) 
+
