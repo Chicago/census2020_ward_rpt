@@ -370,10 +370,6 @@ leaflet() %>%
 vec <- resp_cur_ward$CRRALL
 # pal <- colorNumeric(palette = cols_muted, domain = vec)
 pal <- colorNumeric(palette = cur_pal, domain = c(0,100))
-labs <- shp_tracts_2020_centroids[match(shp_ward_tract$GEOID, shp_tracts_2020$GEOID), ]
-labs$tract <- shp_tracts_2020$TRACT[match(shp_ward_tract$GEOID, shp_tracts_2020$GEOID)]
-labs$tract <- as.character(labs$tract)
-
 leaflet() %>%
   addProviderTiles("Stamen.TonerHybrid") %>% 
   addPolygons(data = shp_ward_tract,
@@ -383,7 +379,10 @@ leaflet() %>%
               label = ~ ward_labels$LABEL) %>%
   addPolygons(data = shp_ward, fill = FALSE, color = "yellow", weight = 5, opacity = .75) %>%
   addPolygons(data = shp_ward, fill = FALSE, color = "blue", weight = 2, opacity = 1) %>%
-  addLabelOnlyMarkers(data = labs, ~labs$x, ~labs$y, label = ~as.character(labs$tract),
+  addLabelOnlyMarkers(data = shp_ward_tract, 
+                      lng = ~lon_centroid, 
+                      lat = ~lat_centroid, 
+                      label = ~as.character(TRACT),
                       labelOptions = labelOptions(noHide = TRUE,
                                                   direction = "center",
                                                   offset = c(0, 0), opacity = 1, 

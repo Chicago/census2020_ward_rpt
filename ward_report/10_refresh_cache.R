@@ -29,9 +29,6 @@ shp_wards <- readOGR("data_maps/wards.geojson", stringsAsFactors = FALSE)
 
 shp_tracts_2020$GEOID <- substr(shp_tracts_2020$GEO_ID, 10, 20)
 
-shp_tracts_2020_centroids <- centroid(shp_tracts_2020,
-                                      iterations = 150,
-                                      initial_width_step = .01)
 shp_ward_centroids <- centroid(shp_wards,
                                iterations = 150,
                                initial_width_step = .01)
@@ -40,10 +37,13 @@ shp_ward_centroids <- centroid(shp_wards,
 ## Crosswalk based on replica data
 ##------------------------------------------------------------------------------
 
-to2020 <- fread("data_census_planning/crosswalk_to_2020.csv")
-to2020[ , TRACT_2020 := as.character(TRACT_2020)]
-to2020[ , TRACT_prev := as.character(TRACT_prev)]
-to2020 <- to2020[ , list(TRACT_2020=TRACT_2020[which.max(allocation)]), TRACT_prev]
+to2020 <- fread("data_census_planning/crosswalk_replica_2019_tracts.csv",
+                keepLeadingZeros = T)
+to2020 <- to2020[i = TRUE ,
+                 j = list(TRACT_2020=TRACT_2020[which.max(allocation)]), 
+                 list(TRACT_prev = TRACT_2019)]
+to2020[ , TRACT_2020 := paste0("17031", TRACT_2020)]
+to2020[ , TRACT_prev := paste0("17031", TRACT_prev)]
 
 ##------------------------------------------------------------------------------
 ## Locally collected responses for 2020

@@ -92,12 +92,14 @@ crosswalk_ct_to_2020[ , allocation := round(pop / tract_total_pop, 3)]
 crosswalk_ct_to_2020[grep("32010.", TRACT_2020)]
 crosswalk_ct_to_2020[grep("32010.", TRACT_2019)]
 
+## All cases where the crosswalk matters
+crosswalk_ct_to_2020[allocation < 1]
+
 ##==============================================================================
 ## WRITE 2019 TO 2020 TRACT CROSSWALK 
 ##==============================================================================
 cw_tr_outfile <- "data_census_planning/crosswalk_replica_2019_tracts.csv"
 fwrite(crosswalk_ct_to_2020, cw_tr_outfile)
-fread("data_census_planning/crosswalk_replica_based.csv")
 
 ##==============================================================================
 ## CALCULATE COMMUNITY AERA CROSSWALK
