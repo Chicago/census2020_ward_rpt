@@ -209,7 +209,10 @@ fname_cook <- "data_maps_census_2020/tracts_2020_stuartlynn_Cook.geojson"
 fname_chi <- "data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson"
 
 file.remove(fname_cook)
-file.remove(fname_chi)
+if(file.exists(fname_chi)) {
+  cat("removing chi tract file\n")
+  file.remove(fname_chi)
+}
 
 writeOGR(obj = shp_cook_2020,  dsn = fname_cook, layer = "tracts",  driver = "GeoJSON")
 saveRDS(shp_cook_2020, file = gsub(".geojson$", ".Rds", fname_cook))
