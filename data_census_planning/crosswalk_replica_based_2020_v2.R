@@ -202,18 +202,9 @@ str(shp_cook_2020@data)
 ## WRITE RESULTS
 ##==============================================================================
 
-## Note: not writing the Chicago only file, the cook file has the same data,
-## but it just needs to be subset. The Chicago file should be deleted though.
-
-fname_cook <- "data_maps_census_2020/tracts_2020_stuartlynn_Cook.geojson"
-fname_chi <- "data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson"
-
-file.remove(fname_cook)
-if(file.exists(fname_chi)) {
-  cat("removing chi tract file\n")
-  file.remove(fname_chi)
-}
-
-writeOGR(obj = shp_cook_2020,  dsn = fname_cook, layer = "tracts",  driver = "GeoJSON")
-saveRDS(shp_cook_2020, file = gsub(".geojson$", ".Rds", fname_cook))
+fname_cook_jsn <- "data_maps_census_2020/tracts_2020_stuartlynn_Cook.geojson"
+fname_cook_rds <- "data_maps_census_2020/tracts_2020_stuartlynn_Cook.Rds"
+file.remove(fname_cook_jsn)
+writeOGR(obj = shp_cook_2020,  dsn = fname_cook_jsn, layer = "tracts",  driver = "GeoJSON")
+saveRDS(shp_cook_2020, file = fname_cook_rds)
 
