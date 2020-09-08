@@ -29,7 +29,8 @@ cw[ , census_tract := census_tract * 100]
 ## read tract shape file
 ##------------------------------------------------------------------------------
 
-shp_tracts_2020 <- readOGR("data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson", stringsAsFactors = FALSE)
+shp_tracts_2020 <- readRDS("data_maps_census_2020/tracts_2020_stuartlynn_Cook.Rds")
+shp_tracts_2020 <- shp_tracts_2020[!is.na(shp_tracts_2020$zip), ]
 shp_tracts_prev <- readOGR("data_maps/tracts_2019_chicago.geojson", stringsAsFactors = FALSE)
 
 ##------------------------------------------------------------------------------
