@@ -24,8 +24,7 @@ Sys.setenv(CIVIS_API_KEY=yaml::read_yaml("config/civis_api_key.yaml")$key)
 ##------------------------------------------------------------------------------
 
 shp_community <- readOGR("data_maps/community_areas.geojson", stringsAsFactors = FALSE)
-shp_tracts_2020 <- readOGR("data_maps_census_2020/tracts_2020_stuartlynn_Chicago.geojson", stringsAsFactors = FALSE)
-shp_tracts_prev <- readOGR("data_maps/tracts_2019_chicago.geojson", stringsAsFactors = FALSE)
+shp_tracts_2020 <- readRDS("data_maps_census_2020/tracts_2020_stuartlynn_Cook.Rds")
 shp_wards <- readOGR("data_maps/wards.geojson", stringsAsFactors = FALSE)
 
 shp_tracts_2020$GEOID <- substr(shp_tracts_2020$GEO_ID, 10, 20)
@@ -57,7 +56,6 @@ resp[ , GEOID := substr(GEO_ID, 10, 20)]
 resp[ , TRACT := substr(GEO_ID, 15, 20)]
 
 table(shp_tracts_2020$TRACT %in% resp$TRACT)
-table(shp_tracts_prev$TRACTCE %in% resp$TRACT)
 
 resp_current <- resp[RESP_DATE == max(RESP_DATE)]
 resp_current <- resp_current[match(shp_tracts_2020$TRACT, TRACT)]
