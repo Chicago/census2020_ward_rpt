@@ -48,6 +48,8 @@ chi_community_areas$col <- colorspace::qualitative_hcl(n = 4, h = c(26, -264), c
 people_locs <- data.table(
   readRDS('../Census2020/data-replica/downloads/population_cols/28_lat.Rds'),
   readRDS('../Census2020/data-replica/downloads/population_cols/29_lng.Rds'))
+
+## Aggregate to households, based on locations
 hh <- people_locs[ , list(pop=.N), list(lat,lng)]
 hh
 
