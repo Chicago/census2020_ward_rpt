@@ -4,3 +4,4 @@
 .Ruserdata
 .DS_Store
 *.lnk
+report_weekly_ward_summary/output/*
