@@ -1,0 +1,11 @@
+base
+data.table
+RUnit
+geneorama
+sp
+rgeos
+leaflet
+colorspace
+rgdal
+RColorBrewer
+magrittr

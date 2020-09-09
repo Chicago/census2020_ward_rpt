@@ -1,0 +1,369 @@
+---
+title: Low Response Scores for Census 2020 Planning
+output: 
+  html_document: 
+    smart: no
+    keep_md: yes
+editor_options: 
+  chunk_output_type: console
+date: "Last compiled on `r format(Sys.time(), '%B %d, %Y')`"
+author: "Author: Gene Leynes"
+---
+
+<!-- # ```{r, setup, include=FALSE} -->
+<!-- # knitr::opts_knit$set(root.dir = '~/COC/census2020_ward_rpt/') -->
+<!-- ``` -->
+
+## Introduction
+
+This was an early look at the Hard to Count scores from the census planning database, and an experiment in using tmap.
+
+Note you will need to set the global settings to use the project directory when knitting, as documented in figure 16.1: https://bookdown.org/yihui/rmarkdown-cookbook/working-directory.html.
+
+## Initialize with libraries and functions
+
+Note, geneorama is needed, and can be installed with `devtools::install_github("geneorama/geneorama")`.  It's only needed for a handful of functions, but there are also some included maps, like community areas. 
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+##==============================================================================
+## INITIALIZE
+##==============================================================================
+
+# rm(list=ls())
+library("geneorama")
+library("data.table")
+library("rgeos")
+library("leaflet")
+library("colorspace")
+library("sp")
+library("rgdal")
+library("RColorBrewer")
+library("magrittr")
+
+## Not used, this time:
+# library("spdep")
+# library("ggplot2")
+# library("bit64")
+
+## Load the functions in the functions directory with sourceDir
+sourceDir("functions/")
+```
+
+## Import Community Areas and Census Tracts
+
+The CA data is from the geneorama package.  The census tracts are from another repository since they were not released by the census at the time this document was created. 
+
+```{r}
+##==============================================================================
+## IMPORT DATA
+##==============================================================================
+
+data("chi_community_areas")
+
+## 2020 Tract data
+shp_tracts_2020 <- readRDS("data_maps_census_2020/tracts_2020_stuartlynn_Cook.Rds")
+## Subset Tract data to Chicago
+shp_tracts_2020 <- shp_tracts_2020[!is.na(shp_tracts_2020$community), ]
+shp_tracts_2020$GEOID <- substr(shp_tracts_2020$GEO_ID, 10, 20)
+```
+
+## Crosswalks
+
+Cross walks are needed to translate 2020 response rates to 2019 tracts.  Only a few tracts changed, but there was no way to know how many or if the effect was concentrated ahead of time.
+
+Also tracts need to be allocated to ward. Ward boundaries cut tracts in half often.
+
+To do the allocation we used a private data set from Replica HQ, which has simulated population data at an individual level.  The person level data is aggregated to household based on location, and those households are geocoded to geographies to come up with the translations between geographies. 
+
+```{r}
+##------------------------------------------------------------------------------
+## Tract crosswalk based on replica data
+##------------------------------------------------------------------------------
+
+to2020 <- fread("data_census_planning/crosswalk_from_2020.csv")
+to2020[ , TRACT_2020 := as.character(TRACT_2020)]
+to2020[ , TRACT_prev := as.character(TRACT_prev)]
+to2020[ , TRACT_2020 := substr(TRACT_2020,6,11)]
+to2020[ , TRACT_prev := substr(TRACT_prev,6,11)]
+
+to2020 <- to2020[ , list(TRACT_2020=TRACT_2020[which.max(allocation)]), TRACT_prev]
+
+##------------------------------------------------------------------------------
+## Ward crosswalk based on replica data
+##------------------------------------------------------------------------------
+toWard <- fread("data_census_planning/crosswalk_replica_based.csv")
+toWard[ , TRACT:=substr(TRACT,6,11)]
+toWard <- toWard[!is.na(TRACT)]
+# toWard <- dcast(toWard, TRACT~ward, value.var = "allocation", fill = 0)
+```
+
+## Response rate data
+
+Load the locally captured response rate data. This is collected from the Census API on a daily basis using the script in this package, and a cron job. 
+
+```{r}
+##------------------------------------------------------------------------------
+## Locally collected responses for 2020
+##------------------------------------------------------------------------------
+resp_filename <- max(list.files(path = "data_daily_resp_cook",
+                                pattern = "^cook.+csv$", full.names = T))
+resp_current <- fread(resp_filename)
+resp_current[ , tract := NULL]
+resp_current[ , GEOID := substr(GEO_ID, 10, 20)]
+resp_current[ , TRACT := substr(GEO_ID, 15, 20)]
+resp_current <- resp_current[match(shp_tracts_2020$TRACT, TRACT)]
+
+## File name for current report:
+resp_filename
+
+## Head of current response rate data
+head(resp_current)
+```
+
+## Planning database
+
+The planning database contains many tract level variables on populations across ACS and Census surveys. It was available among the census 2020 planning materials. 
+
+
+```{r, cache=TRUE}
+##------------------------------------------------------------------------------
+## pdb file from CB
+## Use cross walk to link to 2020 tracts
+##------------------------------------------------------------------------------
+# file.copy("../data-census-planning/pdb2019bgv6_us.csv",
+#           "data_census_planning/")
+# str(pdb)
+
+## NOTE: MANUALLY LIMITED TO COOK COUNTY FOR GITHUB SIZE LIMIT
+
+pdb <- fread("data_census_planning/pdb2019bgv6_cook.csv", keepLeadingZeros = T)
+pdb <- pdb[State=="17" & County == "031"]
+
+# table(unique(pdb$Tract) %in% to2020$TRACT_prev)
+# table(unique(pdb$Tract) %in% to2020$TRACT_2020)
+pdb[ , TRACT_2020 := to2020[match(pdb$Tract, TRACT_prev), TRACT_2020]]
+```
+
+### Testing overlap
+
+Test overlap and coverage between shapefile and planning database:
+
+```{r}
+table(shp_tracts_2020$TRACT %in% pdb$TRACT_2020)
+table(pdb$TRACT_2020 %in% shp_tracts_2020$TRACT)
+table(unique(pdb$TRACT_2020) %in% shp_tracts_2020$TRACT)
+```
+
+Although the overlap isn't perfect, other analysis indicates that the errors are not significant. Most of tracts with error are unpopulated, or very sparsely populated; for example airports. 
+
+### Subset Planning DB to maptch tract shapefile
+```{r}
+pdb <- pdb[pdb$TRACT_2020 %in% shp_tracts_2020$TRACT]
+dim(pdb)
+```
+
+### More checks: Population and household totals:
+
+```{r}
+## Estimates of total population
+sum(pdb$Tot_Population_CEN_2010)     ## 2,695,249
+sum(pdb$Tot_Population_ACS_13_17)    ## 2,722,098
+sum(pdb$Tot_Population_ACSMOE_13_17) ##   705,132 (?)
+
+## Estimates for total households
+sum(pdb$Tot_Housing_Units_CEN_2010)     ## 1,194,116
+sum(pdb$Tot_Housing_Units_ACS_13_17)    ## 1,200,059
+sum(pdb$Tot_Housing_Units_ACSMOE_13_17) ##   203,658 (?)
+```
+
+## Geocode to Community Area
+
+Geocode tracts to Community Area for the shapefile, then match the results to the other planning and response rate files.
+
+```{r}
+##------------------------------------------------------------------------------
+## Get community area
+##------------------------------------------------------------------------------
+
+## Geocode tracts to Community Area
+shp_tracts_2020$community <- geocode_to_map(shp_tracts_2020$lat_centroid,
+                                            shp_tracts_2020$lon_centroid,
+                                            map = chi_community_areas,
+                                            map_field_name = "community")
+## Match to planning database
+pdb$community <- shp_tracts_2020$community[match(pdb$TRACT_2020, shp_tracts_2020$TRACT)]
+
+## Match to current response
+resp_current$community <- shp_tracts_2020$community[match(resp_current$TRACT, 
+                                                          shp_tracts_2020$TRACT)]
+
+```
+
+## Aggreagate Planning DB to Household
+
+The census is conducted at a household level, so aggregage key statistics of the planning db to a household level.
+
+Once this is done, join in the response rate data so that everything is in one place. 
+
+```{r}
+##------------------------------------------------------------------------------
+## Aggregate planning database statistics to 2020 tract
+##------------------------------------------------------------------------------
+
+pdb_household <- pdb[i = TRUE,
+                     j = list(households = sum(Tot_Housing_Units_ACS_13_17),
+                              Tot_Population_ACS_13_17 = sum(Tot_Population_ACS_13_17),
+                              Tot_Occp_Units_ACS_13_17 = sum(Tot_Occp_Units_ACS_13_17),
+                              Hispanic_ACS_13_17 = sum(Hispanic_ACS_13_17),
+                              pct_hisp = sum(Hispanic_ACS_13_17) / sum(Tot_Population_ACS_13_17)),
+                     keyby = list(TRACT = TRACT_2020)]
+pdb_household
+
+## Join in response rates and community area names
+ii <- match(pdb_household$TRACT, resp_current$TRACT)
+pdb_household$response <- resp_current[ii, CRRALL]
+pdb_household$community <- resp_current[ii, community]
+```
+
+## Basic metrics
+
+One of the big questions was how language barriers would affect outreach, so we looked at how many households are Hispanic. Other languages were also examined, but this was a good starting point. 
+
+```{r}
+hist(pdb_household$pct_hisp)
+```
+
+What is the distribution of the current response rate?
+
+```{r}
+hist(pdb_household$response)
+```
+
+
+## Summary by community area
+
+```{r}
+##------------------------------------------------------------------------------
+## Aggregate response data to community area
+##------------------------------------------------------------------------------
+summary_community <- pdb_household[
+  i = !is.na(response),
+  j = list(resp = round(sum(response * households)/sum(households)/100, 2),
+           pop = sum(Tot_Population_ACS_13_17),
+           occ_households = sum(Tot_Occp_Units_ACS_13_17),
+           tot_households = sum(households),
+           hisp_pct = round(sum(pct_hisp * households) / sum(households), 2)),
+  keyby = community]
+
+setnames(summary_community, gsub("_"," ",colnames(summary_community)))
+setnames(summary_community, capwords(colnames(summary_community)))
+# clipper(summary_community)  ## COPY TO CLIPBOARD FOR EXCEL
+summary_community
+```
+
+## Final map output
+
+The final output this time was a map of the Low Response Score, which is the estimated non-response.
+
+```{r}
+##------------------------------------------------------------------------------
+## TMAP tract map
+##------------------------------------------------------------------------------
+library(sf)
+library(tmap)
+
+shp <- shp_tracts_2020
+shp@data <- cbind(shp@data,
+                  pdb[i = match(shp@data$TRACT, 
+                                TRACT_2020),
+                      j = list(Low_Response_Score,
+                               Tot_Population_CEN_2010,
+                               Tot_Housing_Units_CEN_2010,
+                               NH_Blk_alone_ACS_13_17,
+                               Hispanic_ACS_13_17,
+                               ENG_VW_ACS_13_17)],
+                  resp_current[i = match(shp@data$TRACT, 
+                                         TRACT), 
+                               j = list(resp = CRRALL/100)])
+## convert shape file to tmap format
+shp_sf <- st_as_sf(shp, crs = 4326)
+
+popups <- c("NAME", "Low_Response_Score", "Tot_Population_CEN_2010", 
+            "Tot_Housing_Units_CEN_2010", "NH_Blk_alone_ACS_13_17",
+            "Hispanic_ACS_13_17", "ENG_VW_ACS_13_17")
+breaks <- seq(0, 45, by = 5)
+map1 <- tm_shape(shp_sf[sf::st_is_valid(shp_sf), ], 
+                 is.master = TRUE) + 
+  tm_polygons(col = "Low_Response_Score", 
+              palette = "YlOrRd", 
+              style="cont", 
+              alpha = .7, 
+              title = "Low Response Score", 
+              breaks = breaks, 
+              popup.var = popups, 
+              group = "Relevant Community Area Census Tracts") +
+  tm_layout(title = "Heatmap of Low Response Scores") +
+  tm_view(view.legend.position = c("left", "bottom"))  +
+  tm_basemap(server = "OpenMapSurfer.Roads") +
+  tm_shape(chi_community_areas) +
+  tm_borders(col = "blue", lwd=3, group = paste0("Community Areas", " Outline"))
+tmap_mode(mode = c("plot", "view")[2])
+map1
+```
+
+Overall shape of low response score.
+
+```{r}
+hist(shp@data$Low_Response_Score)
+```
+
+
+
+```{r, eval=FALSE, include=FALSE}
+
+## This would be great for daily line charts
+
+##------------------------------------------------------------------------------
+## Read in all the response rate data
+##------------------------------------------------------------------------------
+resp_daily <- rbindlist(lapply(list.files(path = "data_daily_resp_cook/", 
+                                          pattern = "^cook.+csv$", full.names = T), 
+                               fread))
+resp_daily <- resp_daily[!duplicated(resp_daily)]
+resp_daily <- resp_daily[ , list(day = as.IDate(RESP_DATE),
+                                 cum = as.numeric(CRRALL) / 100,
+                                 daily = as.numeric(DRRALL) / 100,
+                                 # GEOID = substr(GEO_ID, 10, 20),
+                                 TRACT = substr(GEO_ID, 15, 20))]
+resp_daily$Tot_Housing_Units_ACS_13_17 <- pdb[match(resp_daily$TRACT, pdb$TRACT_2020) , 
+                                              Tot_Housing_Units_ACS_13_17]
+resp_daily[,sum(Tot_Housing_Units_ACS_13_17, na.rm=T), day]
+
+resp_daily
+
+##------------------------------------------------------------------------------
+## Checking the census tract overlap for the millionth time
+##------------------------------------------------------------------------------
+dim(pdb)
+inin(resp_daily$TRACT, pdb$TRACT_2020)
+inin(unique(resp_daily$TRACT), unique(pdb$TRACT_2020))
+inin(unique(resp_daily$TRACT), unique(shp_tracts_2020$TRACT))
+inin(unique(pdb$TRACT_2020), unique(shp_tracts_2020$TRACT))
+inin(unique(pdb$TRACT_2020), unique(resp_daily$TRACT))
+pdb[ , sum(Tot_Housing_Units_ACS_13_17)]
+pdb[TRACT_2020 %in% shp_tracts_2020$TRACT, sum(Tot_Housing_Units_ACS_13_17)]
+pdb[TRACT_2020 %in% resp_daily$TRACT, sum(Tot_Housing_Units_ACS_13_17)]
+
+table(is.na(pdb[match(resp_daily$TRACT, pdb$TRACT_2020) , 
+                Tot_Housing_Units_ACS_13_17]))
+table(is.na(pdb[match(pdb$TRACT_2020, resp_daily$TRACT) , 
+                Tot_Housing_Units_ACS_13_17]))
+
+# ddall <- dcast(resp_daily, 
+#                TRACT ~ day,
+#                value.var = "daily",
+#                # fun.aggregate = function(x)x/100,
+#                fun.aggregate = mean,
+#                fill = 0)
+```
+
