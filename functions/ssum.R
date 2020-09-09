@@ -1,0 +1,1 @@
+ssum <- function(x){sum(x, na.rm = TRUE)}
