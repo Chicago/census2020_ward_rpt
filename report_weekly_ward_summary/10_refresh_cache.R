@@ -148,7 +148,7 @@ civis_daily_rates <- civis_daily_rates[i = TRUE,
 
 civis_daily_rates_tract <- read_civis_query("select * from public.raw_data_2020")
 
-cachename <- paste0("ward_report/cache/", Sys.Date(), ".RData")
+cachename <- paste0("report_weekly_ward_summary/cache/", Sys.Date(), ".RData")
 save.image(file=cachename)
 
 
