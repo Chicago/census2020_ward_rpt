@@ -41,7 +41,7 @@ datMailRates <- cbind(GEOID = as.character(datMailRates$geographic_identifer),
                       datMailRates) 
 datMailRates <- datMailRates[match(shp_tracts@data$GEOID, datMailRates$GEOID)]
 
-htc <- fread("../data-census-planning/pdb2017tract_2010MRR_2018ACS_IL.csv")
+htc <- fread("../Census2020/data-census-planning/pdb2017tract_2010MRR_2018ACS_IL.csv")
 htc[ , geoidtxt := as.character(geoidtxt)]
 htc <- htc[match(shp_tracts@data$GEOID, htc$geoidtxt)]
 htc$geoidtxt == shp_tracts$GEOID
@@ -153,7 +153,7 @@ ssum(htc$tothh)
 
 ## Household summary:
 pophs <- pop[,
-             list(.N, list(household_id, TRACT, lat, lng)]
+             list(.N, household_id, TRACT, lat, lng)]
 
 pophs <- merge(pophs, 
                htc[i = TRUE,

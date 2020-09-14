@@ -1,0 +1,550 @@
+---
+title: "Census 2020 Ward Level Results"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll #fill
+    social: menu
+    source_code: embed
+# runtime: shiny
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+
+## See: https://github.com/Chicago/census2020_ward_rpt/
+
+geneorama::set_project_dir("census2020_ward_rpt")
+
+# rm(list=ls())
+
+library(shiny)
+library(leaflet)
+library(RColorBrewer)
+library(colorspace)
+library(rgdal) #for reading/writing geo files
+library(rgeos) #for simplification
+library(sp)
+library(data.table)
+library(plotly)
+# library(tmap)
+library(sf)
+library(reactable)
+library(tmap)
+library(flexdashboard)
+library(htmltools)
+library(yaml)
+library(bit64)
+
+source("functions/sourceDir.R")
+sourceDir("functions")
+
+## LOAD CURRENT DATA AND CURRENT WARD
+##*********************
+##*********************
+##*********************
+load(max(list.files("report_weekly_ward_summary/cache", full.names = T)))
+cur_ward <- yaml::read_yaml("report_weekly_ward_summary/cur_ward.yaml")
+cur_ward <- cur_ward$cur_ward
+##*********************
+##*********************
+##*********************
+
+## Ward / tract crosswalk
+ward_crosswalk <- fread("data_census_planning/crosswalk_replica_based.csv")
+ward_crosswalk[ , tract := substr(TRACT, 6, 11)]
+
+## Create data table for maps / summaries of all responses
+resp_current$state <- NULL
+resp_current$county <- NULL
+
+resp_current <- merge(resp_current,
+                      civis_pdb,
+                      by.x = "TRACT",
+                      by.y = "tract",
+                      all.x = TRUE)
+resp_current <- resp_current[!is.na(TRACT)]
+
+## HTC instead?
+htc[ , tract_2020 := substr(TRACT_2020, 6, 11)]
+resp_current <- merge(resp_current,
+                      htc[!is.na(TRACT_2020), MailReturnRateCen2010:tract_2020],
+                      by.x = "TRACT",
+                      by.y = "tract_2020",
+                      all.x = TRUE)
+# NAsummary(resp_current)
+resp_current <- resp_current[!is.na(TRACT)]
+# resp_current[!is.na(gidtr)]
+
+## Calculate ward household table
+resp_cur_ward <- merge(ward_crosswalk[ward == cur_ward,
+                                      list(TRACT = tract,
+                                           ward, 
+                                           households_ward = households,
+                                           households_tract = tract_total,
+                                           allocation)], 
+                       resp_current, 
+                       by = "TRACT")
+
+## Shape file of just current ward
+shp_ward <- shp_wards[shp_wards$ward == cur_ward, ]
+civis_ward_table <- civis_ward_table[match(shp_wards$ward, civis_ward_table$ward)]
+civis_ward_table[ , LABEL := htmltools::HTML(hover_text), ward]
+
+## Tract map of just this ward
+## put data in same order as map
+shp_ward_tract <- shp_tracts_2020[shp_tracts_2020@data$TRACT %in% resp_cur_ward$TRACT, ]
+resp_cur_ward <- resp_cur_ward[match(shp_ward_tract@data$TRACT, resp_cur_ward$TRACT)]
+
+## put data in same order as map
+resp_current <- resp_current[match(shp_tracts_2020$TRACT, TRACT)]
+
+## Map color definitions
+cur_pal <- c("#754C17", "#B96B34", "#F29946", "#E0C245", 
+             # "#99DFF1",
+             "#3BB8E2", "#7999B7", 
+             "#A18EB9",
+             "#694D87", "#3D2E4E")
+
+## City wide response
+city_target_resp <- 75
+city_cur_resp <- civis_ward_table[
+  i = TRUE,
+  j = sum(tot_occp_units_acs_13_17 * current_response_rate) / sum(tot_occp_units_acs_13_17)]
+city_target_resp_civis <- civis_ward_table[
+  i = TRUE,
+  j = sum(tot_occp_units_acs_13_17 * civis_2020_target) / sum(tot_occp_units_acs_13_17)]
+city_cur_resp <- round(city_cur_resp, 1)
+
+## Ward specific respopnse numbers
+ward_target_resp <- civis_ward_table[match(cur_ward, ward), adjusted_civis_2020_target]
+ward_cur_resp <- civis_ward_table[match(cur_ward, ward), current_response_rate]
+ward_target_resp_civis <- civis_ward_table[match(cur_ward, ward), civis_2020_target]
+ward_ranking_table_adj <- civis_ward_table[i = TRUE,
+                                           list(ward,
+                                                current_response_rate,
+                                                rank = 1 +.N - rank(percent_to_target))]
+ward_ranking_adj <- ward_ranking_table_adj[ward == cur_ward, rank]
+
+## Household totals for value boxes
+ward_hh_tot <- resp_cur_ward[ , sum(households_ward)]
+ward_hh_resp_daily <- resp_cur_ward[ , round(sum(households_ward * DRRALL/100))]
+ward_hh_resp_total <- resp_cur_ward[ , round(sum(households_ward * CRRALL/100))]
+
+## Old way, see below for new way
+## Create the ward-specific overlap files to be used in the making the map and table
+# ii <- which(gOverlaps(spgeom1 = shp_tracts_2020,
+#                       spgeom2 = shp_wards[shp_wards@data$ward == cur_ward, ],
+#                       byid = TRUE)[1,])
+# tracts_in_ward <- shp_tracts_2020@data[ii, "TRACT"]
+
+## Merge civis and response data into census data
+# shp_tracts_2020@data <- cbind(shp_tracts_2020@data,
+#                               civis_pdb[match(shp_tracts_2020@data$TRACT, tract)],
+#                               resp_current[match(shp_tracts_2020@data$TRACT, TRACT),
+#                                            list(RESP_DATE, CRRALL,CRRINT)])
+# lll()
+# wtf(resp_cur_ward)
+ward_labels <- 
+  resp_cur_ward[i = TRUE, 
+                j = list(LABEL = htmltools::HTML(
+                  paste(paste0("Tract: ", TRACT),
+                        paste0("As of ", RESP_DATE),
+                        paste0("Total response rate is ", CRRALL, "%"),
+                        paste0("Total internet response rate is ", CRRINT, "%"),
+                        paste0("Households in tract: ",
+                               prettyNum(TotHH, big.mark=",")),
+                        paste0("Households in ward: ",
+                               prettyNum(round(TotHH*households_ward/households_tract), 
+                                         big.mark=",")),
+                        paste0("Response rate 2010 (mail): ", mail_return_rate_cen_2010, "%"),
+                        paste0("Predicted 2020 response rate:", 100-low_response_score, "%"),
+                        paste0("Total population 2010:", tot_population_cen_2010),
+                        paste0("Black population 2010:", nh_blk_alone_acs_13_17),
+                        paste0("Hisp. population 2010:", hispanic_acs_13_17),
+                        paste0("Limited English Proficiency (LEP):", eng_vw_acs_13_17),
+                        paste0("Single Parents:", HH_SingleParent),
+                        sep = "<br>"))),
+                  by = TRACT]
+# str(ward_labels)
+```
+
+
+Row {data-height=120}
+-------------------------------------
+
+### City Response Rate
+```{r}
+gauge(value = city_cur_resp,
+      label = "City",
+      symbol = "%",
+      min = 0, 
+      max = 100, 
+      gaugeSectors(success = c(city_target_resp, 100), 
+                   warning = c(city_target_resp-20, city_target_resp), 
+                   danger = c(0, city_target_resp-20)))
+```
+
+### Ward Response Rate
+```{r}
+gauge(value = ward_cur_resp,
+      label = "Ward",
+      symbol = "%",
+      min = 0, 
+      max = 100, 
+      gaugeSectors(success = c(ward_target_resp, 100), 
+                   warning = c(ward_target_resp_civis, ward_target_resp), 
+                   danger = c(0, ward_target_resp_civis)))
+```
+
+
+### Ward
+```{r}
+valueBox(value =  paste0(ward_ranking_adj, " / 50"), 
+         caption = paste0("Ward ", cur_ward, "'s Current Rank!"),
+         icon = "fa-trophy",
+         color = "success")
+```
+
+
+### Ward
+```{r}
+valueBox(value =  prettyNum(ward_hh_tot, big.mark = ","), 
+         caption = paste0("Total households in Ward ", cur_ward),
+         icon = "fa-pencil",
+         color = "info")
+```
+
+### Ward
+```{r}
+valueBox(value = prettyNum(ward_hh_resp_total, big.mark = ","), 
+         caption = paste0("Total Household Responses for Ward ", cur_ward),
+         icon = "fa-pencil",
+         color = "info")
+```
+
+### Ward
+```{r}
+valueBox(value = prettyNum(ward_hh_resp_daily, big.mark = ","), 
+         caption = paste0("Daily responses for Ward ", cur_ward, " on ", 
+                          max(resp_current$RESP_DATE, na.rm=T)),
+         icon = "fa-pencil",
+         color = "info")
+```
+
+
+Row {data-height=400}
+-------------------------------------
+
+### Daily results for Ward `r cur_ward`
+
+```{r}
+# # output$daily_performance <- renderPlotly({
+fig <- plot_ly(data = civis_daily_rates[!ward==cur_ward,
+                                        list(response_date,
+                                             response_rate = round(response_rate,1))],
+               x = ~response_date, y = ~response_rate,
+               showlegend = FALSE,
+               # color = ~ward,
+               color = I("grey80"), 
+               name = paste("Ward", civis_daily_rates[!ward==cur_ward]$ward),
+               type = "scatter", mode="lines")
+fig <- layout(fig,
+              title = paste0("Cumulative Daily Response Rate\n Ward ", cur_ward),
+              xaxis = list(title = "Household % Responding"),
+              yaxis = list (title = ""))
+fig <- civis_daily_rates[ward==cur_ward,
+                         add_lines(fig, x=response_date, y=response_rate,
+                                   name = paste("Ward", cur_ward),
+                                   color = I("blue"))]
+fig <- fig %>%
+  layout(shapes = list(plotly_vline("2020-04-30", dash = "dash"),
+                       plotly_hline(ward_target_resp, dash = "dot", color = "green"),
+                       plotly_hline(100, dash = "solid")),
+         margin = list(t=80))
+         # default margins:
+         # margin = list(l = 80, r = 80, b = 80, t = 100, pad = 0)
+fig <- add_text(fig,
+                x=as.IDate("2020-03-20"),
+                y = ward_target_resp + 5,
+                text = paste0("Goal for Ward ", cur_ward, " is ", ward_target_resp, "%" ),
+                color = I("gray20"),
+                showlegend = FALSE)
+fig
+
+# })
+# plotlyOutput("daily_performance", width = "50%")
+
+# p <- ggplot() +
+#   geom_errorbar(data = civis_daily_rates[i = TRUE,
+#                                          j = list(max = max(response_rate),
+#                                                   min = min(response_rate)),
+#                                          by = response_date],
+#                 aes(x = response_date, 
+#                     ymin = min, 
+#                     ymax = max),
+#                 width = 1,
+#                 colour = "gray70")+
+#   geom_line(data = civis_daily_rates[i = ward == cur_ward,
+#                                      j = list(response_date = response_date,
+#                                               response_rate,
+#                                               ward = paste("Ward ", ward))], 
+#             aes(x = response_date, y = response_rate, colour = ward),
+#             size = 2)+
+#   xlim(c(as.IDate("2020-03-15"), as.IDate("2020-04-30"))) +
+#   ylim(c(0, 110)) +
+#   geom_hline(yintercept=100, linetype="dashed", color = "black") +
+#   geom_hline(yintercept=ward_target_resp, linetype="dashed", color = "darkgreen") +
+#   geom_segment(aes(x = as.IDate("2020-04-30"), y = 15, 
+#                    xend = as.IDate("2020-04-30"), yend = 100)) +
+#   annotate(geom = "text", x = as.IDate("2020-04-29"), y = 50,
+#            label = "April 30", color = "black", angle = 90) +
+#   annotate(geom = "text", x = as.IDate("2020-03-15"), y = ward_target_resp+5,
+#            label = paste0("Goal for Ward ", cur_ward, " is ", ward_target_resp, "%" ),
+#            color = "darkgreen", angle = 0, hjust = "left") +
+#   annotate(geom = "text", x = as.IDate("2020-03-15"), y = 100+5,
+#            label = paste0("100%"), 
+#            color = "black", angle = 0, hjust = "left") +
+#   ggtitle("Cumulative Daily Household Response Rate", 
+#           subtitle=paste0("Ward ", cur_ward)) +
+#   xlab("") + ylab("Household % Responding")+
+#   theme_bw() +
+#   theme(legend.text = element_text(size=15, face="bold"),
+#         legend.justification=c(1,0),
+#         legend.position=c(1,0),
+#         legend.title = element_blank())
+# # ggplotly(p)
+# p
+```
+
+    
+Row {data-height=600}
+-------------------------------------
+
+### Citywide performance
+
+```{r}
+vec <- civis_ward_table$current_response_rate
+paldomain <- c(1,100)
+# paldomain <- vec
+pal <- colorNumeric(palette = cur_pal, domain = paldomain)
+labs <- shp_ward_centroids
+labs$ward <- as.character(shp_wards$ward)
+leaflet() %>%
+  addProviderTiles("Stamen.TonerHybrid") %>%
+  addPolygons(data = shp_wards,
+              fillColor = ~ pal(vec),
+              fillOpacity = 0.8, weight = 0.5,
+              label = ~civis_ward_table$LABEL) %>%
+  addLabelOnlyMarkers(data = labs, ~labs$x, ~labs$y, label = ~as.character(labs$ward),
+                      labelOptions = labelOptions(noHide = TRUE,
+                                                  direction = "center",
+                                                  offset = c(0, 0), opacity = 1, 
+                                                  textsize = "12px", textOnly = TRUE, 
+                                                  style = list("font-style" = "bold"))) %>%
+  addLegend(pal = pal,
+            values = paldomain,
+            title = "% Resp Rate",
+            position = "bottomright")
+
+# vec <- shp_tracts_2020$CRRALL
+# pal <- colorNumeric(palette = cur_pal, domain = vec)
+# leaflet() %>%
+#   addProviderTiles("Stamen.TonerHybrid") %>%
+#   addPolygons(data = shp_tracts_2020,
+#               fillColor = ~ pal(vec),
+#               fillOpacity = 0.7, weight = 0.5,
+#               # label = ~ ward_spdf$TRACT,
+#               label = ~ vec) %>%
+#   addLegend(pal = pal,
+#             values = vec,
+#             title = "% Resp Rate",
+#             position = "bottomright")
+```
+
+### Ward `r cur_ward`
+
+```{r}
+# output$wardmap <- renderLeaflet({
+vec <- resp_cur_ward$CRRALL
+# pal <- colorNumeric(palette = cols_muted, domain = vec)
+pal <- colorNumeric(palette = cur_pal, domain = c(0,100))
+leaflet() %>%
+  addProviderTiles("Stamen.TonerHybrid") %>% 
+  addPolygons(data = shp_ward_tract,
+              fillColor = ~ pal(vec),
+              fillOpacity = 0.7, weight = 0.5,
+              # label = ~ ward_spdf$TRACT,
+              label = ~ ward_labels$LABEL) %>%
+  addPolygons(data = shp_ward, fill = FALSE, color = "yellow", weight = 5, opacity = .75) %>%
+  addPolygons(data = shp_ward, fill = FALSE, color = "blue", weight = 2, opacity = 1) %>%
+  addLabelOnlyMarkers(data = shp_ward_tract, 
+                      lng = ~lon_centroid, 
+                      lat = ~lat_centroid, 
+                      label = ~as.character(TRACT),
+                      labelOptions = labelOptions(noHide = TRUE,
+                                                  direction = "center",
+                                                  offset = c(0, 0), opacity = 1, 
+                                                  textsize = "12px", textOnly = TRUE, 
+                                                  style = list("font-style" = "bold"))) %>%
+  addLegend(pal = pal,
+            values = c(0,100),
+            title = "% Resp Rate",
+            position = "bottomright")
+# })
+# leafletOutput("wardmap", width = "50%", height = 400)
+```
+
+Row {data-height=650}
+-------------------------------------
+
+### Census tract demographics for Ward `r cur_ward`
+
+
+```{r}
+##------------------------------------------------------------------------------
+## data table to show ward demographics - that will be saved as dt2
+##------------------------------------------------------------------------------
+# civis_pdb[match(tracts_in_ward, tract)]
+# colnames(civis_pdb)
+r <- function(x) round(x, 2)
+dt2 <- resp_cur_ward[i = TRUE,
+                     j = list(low_response_score = round(low_response_score, 0), 
+                              tot_population_cen_2010, 
+                              nh_blk_alone_acs_13_17, 
+                              hispanic_acs_13_17, 
+                              tot_housing_units_cen_2010, 
+                              eng_vw_acs_13_17,
+                              HH_SingleParent,
+                              perc_LEP = r(eng_vw_acs_13_17 / tot_housing_units_cen_2010),
+                              perc_SP = r(HH_SingleParent / tot_housing_units_cen_2010)), 
+                     by = list(TRACT)]
+dt2 <- merge(resp_cur_ward[ , list(CRRALL=r(CRRALL/100), TRACT)], dt2, "TRACT")
+now <- as.POSIXct(max(resp_current$RESP_DATE, na.rm=TRUE))
+now <- paste0(format(now, "%b"), " ", gsub("^0","",format(now, "%d")))
+
+##------------------------------------------------------------------------------
+## Reactable table
+##------------------------------------------------------------------------------
+stylefn <- function(x){
+  col <- colorNumeric(palette = cur_pal, domain = c(0,1))(x)
+  ret <- list(background = col)
+  return(ret)
+}
+rtable <- reactable(dt2, 
+                    defaultColDef = colDef(align = "center",
+                                           maxWidth = 70,
+                                           headerStyle = list(background = "#f7f7f8"),
+                                           format = colFormat(separators = T)),
+                    columns = list (TRACT = colDef(name = "Census Tract"),
+                                    CRRALL = colDef(name = paste("2020 % Responded as of", now),
+                                                    defaultSortOrder = "asc",
+                                                    style = stylefn,
+                                                    format = colFormat(percent = T),
+                                                    width = 110),
+                                    low_response_score = colDef(name = "Low Resp. Score"),
+                                    tot_population_cen_2010 = colDef(name = "Total"),
+                                    nh_blk_alone_acs_13_17 = colDef(name = "Black"), 
+                                    hispanic_acs_13_17 = colDef(name = "Hisp."),
+                                    tot_housing_units_cen_2010 = colDef(name = "Total"),
+                                    eng_vw_acs_13_17 = colDef(name = "Limited English Proficiency (LEP)",
+                                                              width = 95),
+                                    perc_LEP = colDef(name = "% LEP",
+                                                    format = colFormat(percent = T)),
+                                    HH_SingleParent = colDef(name = "Single Parent"),
+                                    perc_SP = colDef(name = "% Single Parent",
+                                                     format = colFormat(percent = TRUE))
+                    ), 
+                    columnGroups = list(colGroup(name = "Population", 
+                                                 columns = c("tot_population_cen_2010",
+                                                             "nh_blk_alone_acs_13_17",
+                                                             "hispanic_acs_13_17")),
+                                        colGroup(name = "Households", 
+                                                 columns = c("tot_housing_units_cen_2010",
+                                                             "eng_vw_acs_13_17",
+                                                             "perc_LEP", "HH_SingleParent",
+                                                             "perc_SP"))),
+                    defaultPageSize = 25,
+                    bordered = TRUE,
+                    resizable = TRUE,
+                    defaultSorted = "CRRALL")
+rtable
+```
+
+
+```{r, include = FALSE}
+## Rank Table
+
+# output$ward_demographics <- renderReactable({rtable})
+# reactableOutput("ward_demographics")
+
+# #Next, use Reactable to come up with a rank table that highlights the specific position
+# #the ward has in comparison to other wards. 
+# rowfn <- function(index) {
+#   a <- which(rankdt$ward == ward)
+#   if (index == a) list(background = "rgba(252, 140, 140, 0.5)")
+# }
+# ranktable <- reactable(rankdt, 
+#                        columns = list(ward = colDef(name = "Ward", format = colFormat(digits = 0)),
+#                                       mean_response = colDef(name = "Raw Response Rate (%)"),
+#                                       mean_handicap = colDef(name = "Weighting Factor"),
+#                                       mean_weightedresponse = colDef(name = "Weighted Response Rate (%)",
+#                                                                      defaultSortOrder = "desc")
+#                        ), 
+# rowStyle = rowfn, 
+# bordered = TRUE, resizable = TRUE, defaultSorted = "mean_weightedresponse", defaultColDef = colDef(format = colFormat(digits = 2))
+# )
+# 
+# #Last, display the ranking as a raw number
+# ranking <- rankings[rankdt$ward==ward]
+# ranking <- 50 - ranking
+```
+
+
+
+```{r, include=FALSE}
+
+## TMAP VERSION NOT WORKING BECAUSE IT WON'T RENDER IN DASHBOARD
+
+# ## Create the ward-specific overlap files to be used in the making the map and table
+# ii <- which(gOverlaps(spgeom1 = shp_tracts_2020, 
+#                       spgeom2 = shp_wards[shp_wards@data$ward == cur_ward, ],
+#                       byid = TRUE)[1,])
+# tracts_in_ward <- shp_tracts_2020@data[ii, "TRACT"]
+# 
+# ## Subset map to ward
+# ward_spdf <- shp_tracts_2020[ii, ]
+# head(ward_spdf@data)
+# 
+# #convert file to tmap format
+# ward_sf <- st_as_sf(ward_spdf, crs = 4326)
+# 
+# ##------------------------------------------------------------------------------
+# ## Ward map based on Civis planning database
+# ##------------------------------------------------------------------------------
+# #start by defining variables that will pop up and breaks
+# popups <- c("tract", "low_response_score", "tot_population_cen_2010",
+#             "tot_housing_units_cen_2010", "nh_blk_alone_acs_13_17",
+#             "hispanic_acs_13_17", "eng_vw_acs_13_17"
+#             # , "HH_SingleParent"
+#             )
+# breaks <- seq(0, 45, by = 5)
+# 
+# popups%in% colnames(ward_spdf@data)
+# 
+# #this will actually make the map
+# map1 <- tm_shape(ward_sf, is.master = TRUE) +
+#   tm_polygons(col = "low_response_score", palette = c("#FFFFFF","#22556F"),
+#               style="cont", alpha = .7, title = "Low       Response Score",
+#               breaks=breaks, popup.var = popups,
+#               group = "Relevant Ward Census Tracts") +
+#   tm_layout(title = "Heatmap of Low Response Scores") +
+#   tm_view(view.legend.position = c("left", "bottom"))  +
+#   tm_basemap(server = "OpenMapSurfer.Roads") +
+#   tm_shape(ward_spdf) +
+#   tm_borders(col = "black", lwd=3, group = paste0("Ward ", cur_ward, " Outline"))
+# # current.mode <- tmap_mode(c("plot", "view")[2])
+# tmap_leaflet(map1)
+```
+
