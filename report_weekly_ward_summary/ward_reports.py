@@ -13,7 +13,7 @@ client = civis.APIClient()
 
 def main():
     #actual ward table import to be used once testing is complete
-    #"""
+    """
     ward_email_data = civis.io.read_civis(database='City of Chicago',
                                           table = 'cic.weekly_email_list',
                                           use_pandas = True)
@@ -26,10 +26,10 @@ def main():
                    columns =['WARD', 'Ward_Office_Email', 'platform_user'])
     #"""
 
-    #report_date = "2020-04-05"
-    #folder_name = "2020-04-06"
-    report_date = get_dates_for_link()['Report Date']
-    folder_name = get_dates_for_link()['Folder Name']
+    report_date = "2020-09-13"
+    folder_name = "2020-09-14"
+    # report_date = get_dates_for_link()['Report Date']
+    # folder_name = get_dates_for_link()['Folder Name']
 
     ##################################################################
     #Loop that calls function that makes new script per ward
