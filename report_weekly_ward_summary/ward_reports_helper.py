@@ -36,6 +36,10 @@ def create_email_body(ward_number, if_platform_user, report_date, folder_name):
 
 Dear Ward {ward_number},
 
+As you may know the deadline for self response has been extended to October 31. Yet, we need to ensure we have as many folks counted by 9/30 as possible. Our office will reach out with more details today. Please continue to promote the census any way you can! Thank you for your hard work, which has gone on longer than any of us would have imagined at the onset.
+
+Summary below
+
 Please find the link for your customized weekly Census Summary Snapshot, which contains:
 
  - Daily response plot with goal
