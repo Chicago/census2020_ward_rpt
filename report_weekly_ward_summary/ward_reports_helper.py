@@ -36,6 +36,8 @@ def create_email_body(ward_number, if_platform_user, report_date, folder_name):
 
 Dear Ward {ward_number},
 
+Just over two weeks remaining!  Thank you for your hard work. 
+
 Please find the link for your customized weekly Census Summary Snapshot, which contains:
 
  - Daily response plot with goal
