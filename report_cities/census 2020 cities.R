@@ -1,14 +1,9 @@
 rm(list=ls())
 
-# library(shiny)
-# library(leaflet)
-# library(RColorBrewer)
-# library(rgdal) #for reading/writing geo files
-# library(rgeos) #for simplification
-# library(sp)
-
 library(data.table)
 library(censusapi)
+library(magrittr)
+library(yaml)
 
 source("functions/sourceDir.R")
 sourceDir("functions")
@@ -17,42 +12,61 @@ sourceDir("functions")
 ## GET / SET CENSUS KEY
 ##------------------------------------------------------------------------------
 
-Sys.setenv(CENSUS_KEY=yaml::read_yaml("config/census_api_key.yaml")$census_api_key)
-Sys.getenv("CENSUS_KEY")
+## You can register for a key here: https://api.census.gov/data/key_signup.html
 
 censuskey <- yaml::read_yaml("config/census_api_key.yaml")$census_api_key
 
+## Set the key as a system variable for use with the censusapi library
+Sys.setenv(CENSUS_KEY=censuskey)
+Sys.getenv("CENSUS_KEY")
+
 ##------------------------------------------------------------------------------
-## URL FOR EXAMPLE CALLS
+## SEE CENSUSAPI DOCUMENTATION FOR EXAMPLES:
+## https://hrecht.github.io/censusapi/articles/example-masterlist.html#decennial-census-self-response-rates
+## https://hrecht.github.io/censusapi/articles/
 ##------------------------------------------------------------------------------
 
-# https://hrecht.github.io/censusapi/articles/example-masterlist.html#decennial-census-self-response-rates
-# https://hrecht.github.io/censusapi/articles/
 
 ##------------------------------------------------------------------------------
 ## 2010 POPULATIONS
 ##------------------------------------------------------------------------------
 
-# geos <- listCensusMetadata(name = "dec/sf1", vintage = 2010, type = "geographies", group = "P1")
-# geos2 <- geos[, 1:3]
-# wtf(geos2)
-
+geos <- listCensusMetadata(name = "dec/sf1", 
+                           vintage = 2010, 
+                           type = "geographies", 
+                           group = "P1")
 str(geos,1)
-listCensusMetadata(name = "dec/sf1", vintage = 2010, type = "variables", group = "P2")
-data2010 <- getCensus(name = "dec/sf1",
-                      vintage = 2010,
-                      vars = c("NAME", "P001001", "H010001"),
-                      region = "place:*")
-str(data2010)
-data2010 <- data.table(data2010)
-data2010[order(-H010001)]
-# wtf(data2010)
-head(data2010)
+
+## Open in Excel
+# geneorama::wtf(geos[, 1:3])
+
+## View variables
+listCensusMetadata(name = "dec/sf1", 
+                   vintage = 2010, 
+                   type = "variables", 
+                   group = "P1")
+listCensusMetadata(name = "dec/sf1", 
+                   vintage = 2010, 
+                   type = "variables", 
+                   group = "P2")
+
+## 2010 Populations for all Places
+population2010 <- getCensus(name = "dec/sf1",
+                            vintage = 2010,
+                            vars = c("NAME", "P001001", "H010001"),
+                            region = "place:*") %>% 
+    data.table() %>% 
+    .[order(-H010001)]
+
+# geneorama::wtf(population2010)
+head(population2010)
 
 ##------------------------------------------------------------------------------
 ## PLANNING DATABASE FOR COOK
 ##------------------------------------------------------------------------------
-pdb_meta <- data.table(listCensusMetadata(name = "pdb/blockgroup", vintage = 2018, type = "variables"))
+pdb_meta <- data.table(listCensusMetadata(name = "pdb/blockgroup", 
+                                          vintage = 2018, 
+                                          type = "variables"))
 pdb_meta
 # wtf(pdb_meta)
 pdb <- getCensus(name = "pdb/blockgroup",
@@ -73,19 +87,20 @@ pdb <- getCensus(name = "pdb/blockgroup",
                           "Mail_Return_Rate_CEN_2010"), # 2010 Census Mail Return Rate
                  region = "block group:*",
                  regionin = "state:17+county:031")
-# wtf(pdb)
+# geneorama::wtf(pdb)
 head(pdb)
 
 ##------------------------------------------------------------------------------
-## MOST? PLACES
+## LIST OF PLACES
 ##------------------------------------------------------------------------------
-url <- "https://api.census.gov/data/2018/acs/acs1?get=B00001_001E,NAME&for=place:*"
-# places <- census_getter(url)
-places <- httr::GET(url = url) %>%
+places_url <- "https://api.census.gov/data/2018/acs/acs1?get=B00001_001E,NAME&for=place:*"
+places <- httr::GET(url = places_url) %>%
     httr::content(as = "text", encoding = "UTF-8") %>%
     jsonlite::fromJSON() %>%
-    data.frame(stringsAsFactors = F)
-places <- setnames(data.table(places[-1, ]), unlist(places[1, ]))
+    data.table
+## First row is actually header
+places <- setnames(places[-1, ], 
+                   unlist(places[1, ]))
 places
 str(places)
 places[grep("Chicago", NAME)]
@@ -102,119 +117,88 @@ places[grep("Chicago", NAME)]
 # il_place_responses
 # il_place_responses[grep("Chicago", il_place_responses$NAME),]
 
-place_responses <- getCensus(
-    name = "dec/responserate",
-    vintage = 2020,
-    vars = c("NAME", "RESP_DATE", "CRRALL", "CRRINT"),
-    region = "place:*",
-    regionin = "state:*")
-place_responses <- data.table(place_responses)
-# wtf(place_responses)
+place_responses <- getCensus(name = "dec/responserate",
+                             vintage = 2020,
+                             vars = c("NAME", "RESP_DATE", "CRRALL", "CRRINT"),
+                             region = "place:*",
+                             regionin = "state:*") %>% 
+    data.table
 place_responses
 
+##------------------------------------------------------------------------------
+## 2020 RESPONSE RATE FOR PLACES, MERGED WITH POPULATION AND PLACE DATA
+##------------------------------------------------------------------------------
 str(places)
 place_responses_merged <- merge(place_responses, 
                                 places,
                                 key = c("state", "place"),
                                 all.x = TRUE)
 place_responses_merged <- merge(place_responses_merged, 
-                                data2010,
+                                population2010,
                                 key = c("state", "place"),
                                 all.x = TRUE)
-
-place_responses_merged
-# wtf(place_responses_merged)
 place_responses_merged
 
+## Open in Excel (not run / run manually)
+## Also, possible to use fwrite
 
-## Example from using the ACS pacakge:
-# api.key.install(censuskey)
-
-## Individual steps used to develop function
-# http_response <- httr::GET(url = "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=state:*")
-# 
-# # str(http_response)
-# # http_response$content
-# resp_text <- httr::content(http_response, as = "text", encoding = "UTF-8")
-# resp <- jsonlite::fromJSON(resp_text)
-# resp_dt <- data.table(resp[-1, ], stringsAsFactors = F)
-# setnames(resp_dt, resp[1, ])
-# fwrite(resp_dt, tf)
-# resp_dt <- fread(tf)
-# str(resp_dt)
-# file.remove(tf)
-# rm(tf)
+# geneorama::wtf(place_responses_merged)
 
 
-# ## Example of all 50 states
-# census_getter("https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=state:*")
-# 
-# ## Cook County by itself
-# url <- "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=county:031&in=state:17"
-# census_getter(url)
-# 
-# ## All census tracts in Cook County
-# url <- "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=tract:*&in=state:17%20county:031&key=60179a2964868d80e37ab0d49e88e654dedf0bc5"
-# census_getter(url)
-# 
-# ## All census tracts in Cook County with yaml key
-# url <- "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=tract:*&in=state:17%20county:031&key=APIKEY"
-# url <- gsub("APIKEY", censuskey, url)
-# census_getter(url)
-# 
-# ## All census tracts in Cook County by components
-# baseurl <- "https://api.census.gov/data/2020/dec/responserate?"
-# parts <- list("get=GEO_ID,RESP_DATE,DRRALL,CRRALL,DRRINT,CRRINT",
-#               "for=tract:*",
-#               "in=state:17%20county:031",
-#               "key=APIKEY")
-# url <- paste0(baseurl, paste(parts, collapse = "&"))
-# url <- gsub("APIKEY", censuskey, url)
-# census_getter(url)
-# 
-# ## All census tracts in Cook County by components
-# ## All dates
-# baseurl <- "https://api.census.gov/data/2020/dec/responserate?"
-# parts <- list("get=DRRALL,CRRINT,CRRALL,GEO_ID,DRRINT",
-#               "RESP_DATE:2020-03-22",
-#               "for=tract:*",
-#               "in=state:17%20county:031",
-#               "key=APIKEY")
-# url <- paste0(baseurl, paste(parts, collapse = "&"))
-# url <- gsub("APIKEY", censuskey, url)
-# census_getter(url)
+##------------------------------------------------------------------------------
+## CENSUS EXAMPLES USING "census_getter" FUNCTION, AND DEVELOPMENT
+##------------------------------------------------------------------------------
 
-# 
-# get_post <- function(params, patient_file_loc, tok){
-#     
-#     ## Format the token into the authorization string
-#     auth_str <- paste("Bearer", tok)
-#     
-#     ## POST record to API
-#     http_response <- httr::POST(url = params$api_endpoint, 
-#                                 body = httr::upload_file(patient_file_loc), 
-#                                 encode = "json",
-#                                 httr::add_headers(Authorization = auth_str))
-#     
-#     ## ID FOR LOOKING UP POST IN ORACLE
-#     post_id <- basename(httr::headers(http_response)$`content-location`)
-#     resp_text <- httr::content(http_response, as = "text", encoding = "UTF-8")
-#     
-#     ## TRY TO PARSE JSON RESPONSE
-#     try(expr = {
-#         resp <- jsonlite::fromJSON(resp_text)
-#     }, silent = TRUE)
-#     
-#     
-#     ## STATUS MESSAGE FORM HTTP HEADER <not currently implemented>
-#     # post_response_status_message <- httr::http_status(http_response)$message
-#     
-#     return(list(post_prediction = resp,
-#                 post_id = post_id))
-# }
-# 
-
-
-
-
+if(FALSE){
+    
+    ## Needed, but should be already loaded:
+    source("functions/sourceDir.R")
+    sourceDir("functions")
+    censuskey <- yaml::read_yaml("config/census_api_key.yaml")$census_api_key
+    
+    ## DEFINE BASE URL    
+    base_resp_url <- "https://api.census.gov/data/2020/dec/responserate?"
+    
+    ## TRACT LEVEL DATA FOR COOK COUNTY
+    tract_resp <- list("get=GEO_ID,DRRALL,DRRINT,CRRALL,CRRINT",
+                       # "RESP_DATE:2020-03-22", ## NOTE: UNABLE TO SPECIFY PAST DATES
+                       "for=tract:*",
+                       "in=state:17%20county:031",
+                       "key=APIKEY") %>% 
+        paste(., collapse = "&") %>% 
+        gsub("APIKEY", censuskey, .) %>% 
+        paste0(base_resp_url, .) %>% 
+        census_getter
+    tract_resp
+    
+    ## COUNTY LEVEL FOR COOK COUNTY
+    county_resp <- list("get=GEO_ID,DRRALL,DRRINT,CRRALL,CRRINT",
+                       "for=county:031",
+                       "in=state:17",
+                       "key=APIKEY") %>% 
+        paste(., collapse = "&") %>% 
+        gsub("APIKEY", censuskey, .) %>% 
+        paste0(base_resp_url, .) %>% 
+        census_getter
+    county_resp
+    
+    ## STATE LEVEL RESPONSE RATES
+    state_response_rates <- list("get=GEO_ID,DRRALL,DRRINT,CRRALL,CRRINT",
+                                 "for=state:*",
+                                 "key=APIKEY") %>% 
+        paste(., collapse = "&") %>% 
+        gsub("APIKEY", censuskey, .) %>% 
+        paste0(base_resp_url, .) %>% 
+        census_getter
+    
+    ## Individual steps to get state level rates
+    state_resp_url <- "https://api.census.gov/data/2020/dec/responserate?get=DRRALL,CRRINT,RESP_DATE,CRRALL,GEO_ID,DRRINT&for=state:*"
+    state_resp <- state_resp_url %>%
+        httr::GET(url = .) %>%
+        httr::content(., as = "text", encoding = "UTF-8") %>%
+        jsonlite::fromJSON(.) %>%
+        data.table
+    state_resp <- setnames(state_resp[-1, ],
+                           unlist(state_resp[1, ]))
+}
 
