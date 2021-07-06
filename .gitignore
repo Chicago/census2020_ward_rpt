@@ -4,4 +4,5 @@
 .Ruserdata
 .DS_Store
 *.lnk
+__pycache__
 report_weekly_ward_summary/output/*
